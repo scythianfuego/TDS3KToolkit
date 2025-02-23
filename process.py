@@ -1,0 +1,128 @@
+import time
+import tarfile
+import zipfile
+import struct
+from io import BytesIO
+from uncompress import unlzw
+from splitlzw import splitlzw
+
+# Convert a string into an integer offset, detecting hex (0x) or decimal.
+def readhex(value: str) -> int:
+    return int(value, 16 if value.lower().startswith("0x") else 10)
+
+data_store = {}
+tar_buffer = BytesIO()
+directories_added = set()
+
+class TekFileProcessor:
+    def process(self, config):
+        global tar_buffer, directories_added
+
+        for step in config:
+            action = step.get("do")
+
+            # general purpose functions
+            if action == "zip_read":
+                data_store[step["path"]] = self.zip_read(step["file"], step["path"])
+            elif action == "read":
+                data_store[step["file"]] = self.read(step["file"])
+            elif action == "allocate":
+                self.allocate(step["name"], step["size"])
+            elif action == "append":
+                start = readhex(step["start"]) if "start" in step else 0
+                end = readhex(step["end"]) if "end" in step else None
+                self.append(step["to"], data_store.get(step["from"], b""), start, end)
+            elif action == "unlzw":
+                data_store[step["to"]] = bytearray(unlzw(self.get(step["from"])))
+            elif action == "tar_add":
+                self.tar_add(step["names"])
+            elif action == "tar_write":
+                self.tar_write(step["output"])
+
+            # special functions
+            elif action == "split_lzw":
+                self.split_lzw(step["from"], step["names"])
+
+            # debug functions
+            elif action == "print":
+                self.print_debug(step["name"])
+            elif action == "print_value":
+                self.print_value(step["text"], step["name"], readhex(step["at"]))
+
+    def allocate(self, name: str, size: int):
+        data_store[name] = bytearray(size)
+
+    def append(self, to: str, from_data: bytes, start: int = 0, end: int = None):
+        if to in data_store:
+            data_to_append = from_data[start:] if end is None else from_data[start:end]
+            data_store[to].extend(data_to_append)
+
+    def get(self, name: str):
+        return bytes(data_store.get(name, b""))
+
+    # Read a file from a zip archive at a given path.
+    def zip_read(self, zipfile_path: str, file_path: str) -> bytes:
+        with zipfile.ZipFile(zipfile_path, 'r') as zipf:
+            with zipf.open(file_path) as file:
+                return file.read()
+
+    # Read a file from tar archive at a given path.
+    def read_tar(self, tarfile_path: str, file_path: str) -> bytes:
+        with tarfile.open(tarfile_path, 'r') as tarf:
+            with tarf.extractfile(file_path) as file:
+                return file.read()
+
+    # Read a file from file system.
+    def read(self, file_path: str) -> bytes:
+        with open(file_path, "rb") as f:
+            return f.read()
+
+
+    def tar_add(self, names):
+        global directories_added
+        with tarfile.open(fileobj=tar_buffer, mode="w") as tar:
+            for name in names:
+                if '/' in name:
+                    dir_name = name.rsplit('/', 1)[0]
+                    if dir_name not in directories_added:
+                        dir_info = tarfile.TarInfo(name=dir_name + '/')
+                        dir_info.type = tarfile.DIRTYPE
+                        dir_info.mtime = time.time()
+                        tar.addfile(dir_info)
+                        directories_added.add(dir_name)
+
+                data_io = BytesIO(self.get(name))
+                tarinfo = tarfile.TarInfo(name=name)
+                tarinfo.size = len(data_io.getbuffer())
+                tarinfo.mtime = time.time()
+                tar.addfile(tarinfo, data_io)
+
+    def tar_write(self, output_tar):
+        with open(output_tar, "wb") as f:
+            f.write(tar_buffer.getvalue())
+
+
+    # takes LWZ compressed data from disk3 and disk4 and splits by magic number
+    def split_lzw(self, source, filenames):
+        files = splitlzw(data_store[source], filenames)
+        for file in files:
+            name = file["name"]
+            uname = name + ".dat"
+            cname = "lzw/" + name + ".z"
+            data_store[uname] = file["decompressed"]
+            data_store[cname] = file["compressed"]
+
+    def print_debug(self, name):
+        data = data_store.get(name, b"")
+        hex_first = data[:8].hex()
+        hex_last = data[-8:].hex()
+        print(f"{name.ljust(20)}  {str(len(data)).rjust(7)} bytes   {hex_first}...{hex_last}")
+
+    def print_value(self, text, name, at):
+        data = data_store.get(name, b"")
+        if at + 4 <= len(data):
+            value = struct.unpack_from(">I", data, at)[0]
+            print(f"{text}: {value:08X}")
+        else:
+            print(f"{text}: Offset out of range")
+
