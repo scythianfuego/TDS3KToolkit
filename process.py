@@ -15,70 +15,73 @@ tar_buffer = BytesIO()
 directories_added = set()
 
 class TekFileProcessor:
-    def process(self, config):
-        global tar_buffer, directories_added
+    # public API
 
-        for step in config:
-            action = step.get("do")
+    def read(self, file):
+        data_store[file] = self.__read(file)
 
-            # general purpose functions
-            if action == "zip_read":
-                data_store[step["path"]] = self.zip_read(step["file"], step["path"])
-            elif action == "read":
-                data_store[step["file"]] = self.read(step["file"])
-            elif action == "allocate":
-                self.allocate(step["name"], step["size"])
-            elif action == "append":
-                start = readhex(step["start"]) if "start" in step else 0
-                end = readhex(step["end"]) if "end" in step else None
-                self.append(step["to"], data_store.get(step["from"], b""), start, end)
-            elif action == "unlzw":
-                data_store[step["to"]] = bytearray(unlzw(self.get(step["from"])))
-            elif action == "tar_add":
-                self.tar_add(step["names"])
-            elif action == "tar_write":
-                self.tar_write(step["output"])
+    def zip_read(self, *, file, path):
+        data_store[path] = self.__zip_read(file, path)
 
-            # special functions
-            elif action == "split_lzw":
-                self.split_lzw(step["from"], step["names"])
+    def allocate(self, *, size, name):
+        self.__allocate(name, size)
 
-            # debug functions
-            elif action == "print":
-                self.print_debug(step["name"])
-            elif action == "print_value":
-                self.print_value(step["text"], step["name"], readhex(step["at"]))
+    def append(self, *, dest, src, start, end=None):
+        start = int(start, 16) if isinstance(start, str) else start
+        end = int(end, 16) if isinstance(end, str) else end
+        self.__append(dest, data_store.get(src, b""), start, end)
 
-    def allocate(self, name: str, size: int):
+    def unlzw(self, *, src, dest):
+        data_store[dest] = bytearray(unlzw(data_store.get(src)))
+
+    def split_lzw(self, *, src, names):
+        self.__split_lzw(src, names)
+
+    def print(self, *, name):
+        self.__print_debug(name)
+
+    def print_value(self, *, text, name, at):
+        self.__print_value(text, name, int(at, 16))
+
+    def tar_add(self, *, output, names):
+        self.__tar_add(names)
+
+    def tar_write(self, *, output):
+        self.__tar_write(output)
+
+
+    # private methods
+
+    def __allocate(self, name: str, size: int):
         data_store[name] = bytearray(size)
 
-    def append(self, to: str, from_data: bytes, start: int = 0, end: int = None):
+    def __append(self, to: str, from_data: bytes, start: int = 0, end: int = None):
         if to in data_store:
             data_to_append = from_data[start:] if end is None else from_data[start:end]
             data_store[to].extend(data_to_append)
 
-    def get(self, name: str):
+    def __get(self, name: str):
         return bytes(data_store.get(name, b""))
 
     # Read a file from a zip archive at a given path.
-    def zip_read(self, zipfile_path: str, file_path: str) -> bytes:
+    def __zip_read(self, zipfile_path: str, file_path: str) -> bytes:
         with zipfile.ZipFile(zipfile_path, 'r') as zipf:
             with zipf.open(file_path) as file:
                 return file.read()
 
     # Read a file from tar archive at a given path.
-    def read_tar(self, tarfile_path: str, file_path: str) -> bytes:
+    def __read_tar(self, tarfile_path: str, file_path: str) -> bytes:
         with tarfile.open(tarfile_path, 'r') as tarf:
             with tarf.extractfile(file_path) as file:
                 return file.read()
 
     # Read a file from file system.
-    def read(self, file_path: str) -> bytes:
+    def __read(self, file_path: str) -> bytes:
         with open(file_path, "rb") as f:
             return f.read()
 
 
-    def tar_add(self, names):
+    def __tar_add(self, names):
         global directories_added
         with tarfile.open(fileobj=tar_buffer, mode="w") as tar:
             for name in names:
@@ -91,19 +94,19 @@ class TekFileProcessor:
                         tar.addfile(dir_info)
                         directories_added.add(dir_name)
 
-                data_io = BytesIO(self.get(name))
+                data_io = BytesIO(self.__get(name))
                 tarinfo = tarfile.TarInfo(name=name)
                 tarinfo.size = len(data_io.getbuffer())
                 tarinfo.mtime = time.time()
                 tar.addfile(tarinfo, data_io)
 
-    def tar_write(self, output_tar):
+    def __tar_write(self, output_tar):
         with open(output_tar, "wb") as f:
             f.write(tar_buffer.getvalue())
 
 
     # takes LWZ compressed data from disk3 and disk4 and splits by magic number
-    def split_lzw(self, source, filenames):
+    def __split_lzw(self, source, filenames):
         files = splitlzw(data_store[source], filenames)
         for file in files:
             name = file["name"]
@@ -112,13 +115,13 @@ class TekFileProcessor:
             data_store[uname] = file["decompressed"]
             data_store[cname] = file["compressed"]
 
-    def print_debug(self, name):
+    def __print_debug(self, name):
         data = data_store.get(name, b"")
         hex_first = data[:8].hex()
         hex_last = data[-8:].hex()
         print(f"{name.ljust(20)}  {str(len(data)).rjust(7)} bytes   {hex_first}...{hex_last}")
 
-    def print_value(self, text, name, at):
+    def __print_value(self, text, name, at):
         data = data_store.get(name, b"")
         if at + 4 <= len(data):
             value = struct.unpack_from(">I", data, at)[0]

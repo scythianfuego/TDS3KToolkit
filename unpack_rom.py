@@ -21,28 +21,24 @@ files = [
     ]
 
 
-processor = TekFileProcessor()
+p = TekFileProcessor()
 
-# processor.do("read", file=rom)
+p.read(file=rom)
 
-config = [
-    { "do": "read", "file": rom},
-    { "do": "allocate", "size": 0, "name": "header.bin"},
-    { "do": "allocate", "size": 0, "name": "bootloader.bin"},
-    { "do": "allocate", "size": 0, "name": "recovery.bin"},
-    { "do": "allocate", "size": 0, "name": "compressor.bin"},
-    { "do": "allocate", "size": 0, "name": "firmware.bin"},
-    { "do": "allocate", "size": 0, "name": "easteregg.png"},
-    { "do": "allocate", "size": 0, "name": "filesystem.bin"},
-    { "do": "allocate", "size": 0, "name": "devicedata.bin"},
+p.allocate(size=0, name="header.bin")
+p.allocate(size=0, name="bootloader.bin")
+p.allocate(size=0, name="recovery.bin")
+p.allocate(size=0, name="compressor.bin")
+p.allocate(size=0, name="firmware.bin")
+p.allocate(size=0, name="easteregg.png")
+p.allocate(size=0, name="filesystem.bin")
+p.allocate(size=0, name="devicedata.bin")
 
-    {"do": "append", "to": "header.bin", "from": rom, "start": "0x0", "end": "0x100"},
-    {"do": "append", "to": "easteregg.png", "from": rom, "start": "0x26EB60", "end": "0x280000"},
-    {"do": "append", "to": "filesystem.bin", "from": rom, "start": "0x280000", "end": "0x3E0000"},
-    {"do": "append", "to": "devicedata.bin", "from": rom, "start": "0x3E0000", "end": "0x400000"},
+p.append(dest="header.bin", src=rom, start="0x0", end="0x100")
+p.append(dest="easteregg.png", src=rom, start="0x26EB60", end="0x280000")
+p.append(dest="filesystem.bin", src=rom, start="0x280000", end="0x3E0000")
+p.append(dest="devicedata.bin", src=rom, start="0x3E0000", end="0x400000")
 
-    {"do": "tar_add", "output": "rom.tar", "names": files},
-    {"do": "tar_write", "output": "rom.tar"}
-]
+p.tar_add(output="rom.tar", names=files)
+p.tar_write(output="rom.tar")
 
-processor.process(config)

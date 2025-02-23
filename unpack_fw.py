@@ -35,38 +35,36 @@ files_to_save = [
     "lzw/module_6.z",
 ];
 
-processor = TekFileProcessor()
-config = [
-    {"do": "zip_read", "file": "tds3000_3.41_063354011_tek.zip", "path": "disk1/fwdisk1.dat"},
-    {"do": "zip_read", "file": "tds3000_3.41_063354011_tek.zip", "path": "disk2/fwdisk2.dat"},
-    {"do": "zip_read", "file": "tds3000_3.41_063354011_tek.zip", "path": "disk2/fwdisk2a.dat"},
-    {"do": "zip_read", "file": "tds3000_3.41_063354011_tek.zip", "path": "disk3/fwdisk3.dat"},
-    {"do": "zip_read", "file": "tds3000_3.41_063354011_tek.zip", "path": "disk4/fwdisk4.dat"},
+p = TekFileProcessor()
 
-    {"do": "allocate", "size": 0, "name": "lzw/updater.z"},
-    {"do": "allocate", "size": 0, "name": "lzw/recovery.z"},
-    {"do": "allocate", "size": 0, "name": "tmp/disk34.data"},
-    {"do": "allocate", "size": 0, "name": "updater.dat"},
-    {"do": "allocate", "size": 0, "name": "recovery.dat"},
+p.zip_read( file="tds3000_3.41_063354011_tek.zip", path="disk1/fwdisk1.dat")
+p.zip_read( file="tds3000_3.41_063354011_tek.zip", path="disk2/fwdisk2.dat")
+p.zip_read( file="tds3000_3.41_063354011_tek.zip", path="disk2/fwdisk2a.dat")
+p.zip_read( file="tds3000_3.41_063354011_tek.zip", path="disk3/fwdisk3.dat")
+p.zip_read( file="tds3000_3.41_063354011_tek.zip", path="disk4/fwdisk4.dat")
 
-    {"do": "append", "to": "lzw/updater.z", "from": "disk1/fwdisk1.dat", "start": "0x60"},
-    {"do": "append", "to": "lzw/updater.z", "from": "disk2/fwdisk2.dat", "start": "0x60"},
-    {"do": "append", "to": "lzw/recovery.z", "from": "disk2/fwdisk2a.dat", "start": "0x60"},
-    {"do": "append", "to": "tmp/disk34.data", "from": "disk3/fwdisk3.dat", "start": "0x60"},
-    {"do": "append", "to": "tmp/disk34.data", "from": "disk4/fwdisk4.dat", "start": "0x60"},
+p.allocate( size=0, name="lzw/updater.z")
+p.allocate( size=0, name="lzw/recovery.z")
+p.allocate( size=0, name="tmp/disk34.data")
+p.allocate( size=0, name="updater.dat")
+p.allocate( size=0, name="recovery.dat")
 
-    {"do": "unlzw", "from": "lzw/updater.z", "to": "updater.dat"},
-    {"do": "unlzw", "from": "lzw/recovery.z", "to": "recovery.dat"},
-    {"do": "split_lzw", "from": "tmp/disk34.data", "names": disk34_filenames},
+p.append( dest="lzw/updater.z", src="disk1/fwdisk1.dat", start="0x60")
+p.append( dest="lzw/updater.z", src="disk2/fwdisk2.dat", start="0x60")
+p.append( dest="lzw/recovery.z", src="disk2/fwdisk2a.dat", start="0x60")
+p.append( dest="tmp/disk34.data", src="disk3/fwdisk3.dat", start="0x60")
+p.append( dest="tmp/disk34.data", src="disk4/fwdisk4.dat", start="0x60")
 
-    {"do": "print", "name": "disk1/fwdisk1.dat"},
-    {"do": "print_value", "text": "fwdisk1 checksum", "name": "disk1/fwdisk1.dat", "at": "0x0C"},
-    {"do": "print", "name": "updater.dat"},
-    {"do": "print", "name": "lzw/updater.z"},
+p.unlzw( src="lzw/updater.z", dest="updater.dat")
+p.unlzw( src="lzw/recovery.z", dest="recovery.dat")
+p.split_lzw( src="tmp/disk34.data", names=disk34_filenames)
 
-    {"do": "tar_add", "output": "output.tar", "names": files_to_save},
-    {"do": "tar_write", "output": "output.tar"}
-]
+p.print( name="disk1/fwdisk1.dat")
+p.print_value( text="fwdisk1 checksum", name="disk1/fwdisk1.dat", at="0x0C")
+p.print( name="updater.dat")
+p.print( name="lzw/updater.z")
+
+p.tar_add( output="output.tar", names=files_to_save)
+p.tar_write( output="output.tar")
 
 
-processor.process(config)

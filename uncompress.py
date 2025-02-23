@@ -196,13 +196,3 @@ def unlzw(inp) -> bytes:
 
     # Return the decompressed data as bytes
     return bytes(bytearray(put))
-
-# #------
-
-with open("strings_de.z", "rb") as f:
-    compressed_data = f.read()
-
-decompressed_data = unlzw(compressed_data)
-
-with open("strings_de", "wb") as out_f:
-  out_f.write(decompressed_data)
