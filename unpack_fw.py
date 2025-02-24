@@ -1,5 +1,26 @@
 from process import TekFileProcessor
 
+def checksum_message(text, calculated, expected):
+    if (calculated == expected):
+        print(f"{text} OK: {calculated:08X}")
+    else:
+        print(f"{text} failed: calculated {calculated:08X} expected {expected:08X}")
+
+
+def test_checksums(p):
+    # disk contents
+    checksum_message("fwdisk1.dat  checksum", p.checksum(name="disk1/fwdisk1.dat",  start="0x60"), p.value(name="disk1/fwdisk1.dat", at="0x08") )
+    checksum_message("fwdisk2.dat  checksum", p.checksum(name="disk2/fwdisk2.dat",  start="0x60"), p.value(name="disk2/fwdisk2.dat", at="0x08") )
+    checksum_message("fwdisk2a.dat checksum", p.checksum(name="disk2/fwdisk2a.dat", start="0x60"), p.value(name="disk2/fwdisk2a.dat",at="0x08") )
+    checksum_message("fwdisk3.dat  checksum", p.checksum(name="disk3/fwdisk3.dat",  start="0x60"), p.value(name="disk3/fwdisk3.dat", at="0x08") )
+    checksum_message("fwdisk4.dat  checksum", p.checksum(name="disk4/fwdisk4.dat",  start="0x60"), p.value(name="disk4/fwdisk4.dat", at="0x08") )
+    #data
+    checksum_message("Updater checksum ", p.checksum(name="lzw/updater.z"), p.value(name="disk1/fwdisk1.dat", at="0x0C") )
+    checksum_message("Recovery checksum", p.checksum(name="lzw/recovery.z"), p.value(name="disk2/fwdisk2a.dat", at="0x0C") )
+    print("-- Next checksum should includes some extra files (which?), ignore mismatch --")
+    checksum_message("Firmware checksum", p.checksum(name="lzw/firmware.z"), p.value(name="disk3/fwdisk3.dat", at="0x0C") )
+
+
 disk34_filenames = [
     "firmware",
     "strings_en", "strings_it", "module_1", "strings_de", "module_2",
@@ -37,34 +58,36 @@ files_to_save = [
 
 p = TekFileProcessor()
 
-p.zip_read( file="tds3000_3.41_063354011_tek.zip", path="disk1/fwdisk1.dat")
-p.zip_read( file="tds3000_3.41_063354011_tek.zip", path="disk2/fwdisk2.dat")
-p.zip_read( file="tds3000_3.41_063354011_tek.zip", path="disk2/fwdisk2a.dat")
-p.zip_read( file="tds3000_3.41_063354011_tek.zip", path="disk3/fwdisk3.dat")
-p.zip_read( file="tds3000_3.41_063354011_tek.zip", path="disk4/fwdisk4.dat")
+input="tds3000_3.41_063354011_tek.zip"
 
-p.allocate( size=0, name="lzw/updater.z")
-p.allocate( size=0, name="lzw/recovery.z")
-p.allocate( size=0, name="tmp/disk34.data")
-p.allocate( size=0, name="updater.dat")
-p.allocate( size=0, name="recovery.dat")
+p.zip_read( file=input, path="disk1/fwdisk1.dat")
+p.zip_read( file=input, path="disk2/fwdisk2.dat")
+p.zip_read( file=input, path="disk2/fwdisk2a.dat")
+p.zip_read( file=input, path="disk3/fwdisk3.dat")
+p.zip_read( file=input, path="disk4/fwdisk4.dat")
 
-p.append( dest="lzw/updater.z", src="disk1/fwdisk1.dat", start="0x60")
-p.append( dest="lzw/updater.z", src="disk2/fwdisk2.dat", start="0x60")
-p.append( dest="lzw/recovery.z", src="disk2/fwdisk2a.dat", start="0x60")
-p.append( dest="tmp/disk34.data", src="disk3/fwdisk3.dat", start="0x60")
-p.append( dest="tmp/disk34.data", src="disk4/fwdisk4.dat", start="0x60")
+outputnames = ["lzw/updater.z", "lzw/recovery.z", "tmp/disk34.data", "updater.dat", "recovery.dat"]
+for name in outputnames:
+    p.allocate(size=0, name=name)
+
+p.append(src="disk1/fwdisk1.dat",  start="0x60", dest="lzw/updater.z")
+p.append(src="disk2/fwdisk2.dat",  start="0x60", dest="lzw/updater.z")
+p.append(src="disk2/fwdisk2a.dat", start="0x60", dest="lzw/recovery.z")
+p.append(src="disk3/fwdisk3.dat",  start="0x60", dest="tmp/disk34.data")
+p.append(src="disk4/fwdisk4.dat",  start="0x60", dest="tmp/disk34.data")
 
 p.unlzw( src="lzw/updater.z", dest="updater.dat")
 p.unlzw( src="lzw/recovery.z", dest="recovery.dat")
 p.split_lzw( src="tmp/disk34.data", names=disk34_filenames)
 
-p.print( name="disk1/fwdisk1.dat")
-p.print_value( text="fwdisk1 checksum", name="disk1/fwdisk1.dat", at="0x0C")
-p.print( name="updater.dat")
-p.print( name="lzw/updater.z")
+test_checksums(p)
 
-p.tar_add( output="output.tar", names=files_to_save)
-p.tar_write( output="output.tar")
+print("\nSaving files...")
+for name in files_to_save:
+    p.print(name=name)
 
+output = "output.tar"
+p.tar_add( output=output, names=files_to_save)
+p.tar_write( output=output)
 
+print(f"--> {output}")

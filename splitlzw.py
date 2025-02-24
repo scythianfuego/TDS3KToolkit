@@ -31,7 +31,7 @@ def splitlzw(data_chunk, filenames):
         if not buffer:
             break
 
-        print(f"LZW chunk at {start_offset:08X} size {size:08X} {buffer[0:8].hex()}...{buffer[-8:].hex()}")
+        #print(f"Found LZW chunk at {start_offset:08X} size {size:08X} {buffer[0:8].hex()}...{buffer[-8:].hex()}")
         try:
             output = unlzw(buffer)
         except Exception as e:

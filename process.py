@@ -5,6 +5,7 @@ import struct
 from io import BytesIO
 from uncompress import unlzw
 from splitlzw import splitlzw
+from checksum import checksum
 
 # Convert a string into an integer offset, detecting hex (0x) or decimal.
 def readhex(value: str) -> int:
@@ -43,11 +44,25 @@ class TekFileProcessor:
     def print_value(self, *, text, name, at):
         self.__print_value(text, name, int(at, 16))
 
+    def value(self, *, name, at):
+        at = int(at, 16) if isinstance(at, str) else at
+        return self.__value(name, at)
+
     def tar_add(self, *, output, names):
         self.__tar_add(names)
 
     def tar_write(self, *, output):
         self.__tar_write(output)
+
+    def checksum(self, *, name, start=0, end=None):
+        data = data_store.get(name, b"")
+        start = int(start, 16) if isinstance(start, str) else start
+        end = int(end, 16) if isinstance(end, str) else end
+        data = data[start:] if end is None else data[start:end]
+        return checksum(data)
+
+    def get(self, name: str):
+        return bytes(data_store.get(name, b""))
 
 
     # private methods
@@ -114,6 +129,13 @@ class TekFileProcessor:
             cname = "lzw/" + name + ".z"
             data_store[uname] = file["decompressed"]
             data_store[cname] = file["compressed"]
+
+    def __value(self, name, at):
+        data = data_store.get(name, b"")
+        if at + 4 <= len(data):
+            return struct.unpack_from(">I", data, at)[0]
+        else:
+            return None
 
     def __print_debug(self, name):
         data = data_store.get(name, b"")

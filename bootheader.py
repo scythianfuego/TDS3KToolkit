@@ -1,10 +1,11 @@
 import struct
+from checksum import calculate_checksum
 
 SECTIONS = {
     "boot": 0x20,
-    "firmware": 0x30,
+    "firmware": 0x40000,
     "decompressor": 0x40,
-    "recovery": 0x50,
+    "recovery": 0x4000,
 }
 FIELDS = ["address", "size", "checksum", "compressed"]
 
@@ -17,6 +18,13 @@ def parse_boot_header(data):
         for section, offset in SECTIONS.items()
     }
 
+
+def parse_section(data, offset):
+    return {
+        field: struct.unpack_from(">I", data, offset + i * 4)[0]
+        for i, field in enumerate(FIELDS)
+    }
+
 def boot_header_to_bytes(header):
     data = bytearray(0x60)
     for section, offset in SECTIONS.items():
@@ -24,15 +32,16 @@ def boot_header_to_bytes(header):
     return bytes(data)
 
 def print_boot_header(header):
-    print(f"{'Section':<12}{'Address':<12}{'Size':<12}{'Checksum':<12}{'Is Compressed':<12}")
+    print(f"{'Section':<14}{'Address':<12}{'Size':<12}{'Checksum':<12}{'Compressed':<12}")
     print("-" * 60)
     for section, values in header.items():
-        print(f"{section:<12}{values['address']:<12}{values['size']:<12}{values['checksum']:<12}{values['compressed']:<12}")
+        print(f"{section:<14}{values['address']:<12X}{values['size']:<12}{values['checksum']:<12X}{values['compressed']:<12}")
 
-def verify_section_crc(header, section, data, crc_function):
-    if section not in header:
-        raise ValueError("Invalid section name")
-    start = header[section]["address"]
+def verify_section_crc(header, section, data):
+    # if section not in header:
+    #     raise ValueError("Invalid section name")
+    base = 0xFFC00000
+    start = header[section]["address"] - base
     size = header[section]["size"]
     chunk = data[start:start + size]
-    return crc_function(chunk)
+    return calculate_checksum(chunk)
