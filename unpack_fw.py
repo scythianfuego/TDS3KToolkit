@@ -1,10 +1,5 @@
 from process import TekFileProcessor
-
-def checksum_message(text, calculated, expected):
-    if (calculated == expected):
-        print(f"{text} OK: {calculated:08X}")
-    else:
-        print(f"{text} failed: calculated {calculated:08X} expected {expected:08X}")
+from console import error, warning, success, notice, checksum_message
 
 
 def test_checksums(p):
@@ -15,10 +10,10 @@ def test_checksums(p):
     checksum_message("fwdisk3.dat  checksum", p.checksum(name="disk3/fwdisk3.dat",  start="0x60"), p.value(name="disk3/fwdisk3.dat", at="0x08") )
     checksum_message("fwdisk4.dat  checksum", p.checksum(name="disk4/fwdisk4.dat",  start="0x60"), p.value(name="disk4/fwdisk4.dat", at="0x08") )
     #data
-    checksum_message("Updater checksum ", p.checksum(name="lzw/updater.z"), p.value(name="disk1/fwdisk1.dat", at="0x0C") )
-    checksum_message("Recovery checksum", p.checksum(name="lzw/recovery.z"), p.value(name="disk2/fwdisk2a.dat", at="0x0C") )
-    print("-- Next checksum should includes some extra files (which?), ignore mismatch --")
-    checksum_message("Firmware checksum", p.checksum(name="lzw/firmware.z"), p.value(name="disk3/fwdisk3.dat", at="0x0C") )
+    checksum_message("Service firmware checksum ", p.checksum(name="lzw/service.z"), p.value(name="disk1/fwdisk1.dat", at="0x0C") )
+    checksum_message("Recovery firmware checksum", p.checksum(name="lzw/recovery.z"), p.value(name="disk2/fwdisk2a.dat", at="0x0C") )
+    print("-- Next checksum calculation should includes some extra files (which?), ignore mismatch --")
+    checksum_message("User firmware checksum", p.checksum(name="lzw/firmware.z"), p.value(name="disk3/fwdisk3.dat", at="0x0C"), 1 )
 
 
 disk34_filenames = [
@@ -28,8 +23,8 @@ disk34_filenames = [
 ]
 
 files_to_save = [
-    "updater.dat", "recovery.dat", "firmware.dat",
-    "lzw/updater.z", "lzw/recovery.z", "lzw/firmware.z",
+    "service.dat", "recovery.dat", "firmware.dat",
+    "lzw/service.z", "lzw/recovery.z", "lzw/firmware.z",
 
     "strings_en.dat",
     "strings_it.dat",
@@ -66,17 +61,17 @@ p.zip_read( file=input, path="disk2/fwdisk2a.dat")
 p.zip_read( file=input, path="disk3/fwdisk3.dat")
 p.zip_read( file=input, path="disk4/fwdisk4.dat")
 
-outputnames = ["lzw/updater.z", "lzw/recovery.z", "tmp/disk34.data", "updater.dat", "recovery.dat"]
+outputnames = ["lzw/service.z", "lzw/recovery.z", "tmp/disk34.data", "service.dat", "recovery.dat"]
 for name in outputnames:
     p.allocate(size=0, name=name)
 
-p.append(src="disk1/fwdisk1.dat",  start="0x60", dest="lzw/updater.z")
-p.append(src="disk2/fwdisk2.dat",  start="0x60", dest="lzw/updater.z")
+p.append(src="disk1/fwdisk1.dat",  start="0x60", dest="lzw/service.z")
+p.append(src="disk2/fwdisk2.dat",  start="0x60", dest="lzw/service.z")
 p.append(src="disk2/fwdisk2a.dat", start="0x60", dest="lzw/recovery.z")
 p.append(src="disk3/fwdisk3.dat",  start="0x60", dest="tmp/disk34.data")
 p.append(src="disk4/fwdisk4.dat",  start="0x60", dest="tmp/disk34.data")
 
-p.unlzw( src="lzw/updater.z", dest="updater.dat")
+p.unlzw( src="lzw/service.z", dest="service.dat")
 p.unlzw( src="lzw/recovery.z", dest="recovery.dat")
 p.split_lzw( src="tmp/disk34.data", names=disk34_filenames)
 

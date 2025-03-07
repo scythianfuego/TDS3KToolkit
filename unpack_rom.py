@@ -1,7 +1,7 @@
 from process import TekFileProcessor
 
 from bootheader import parse_boot_header, print_boot_header, verify_section_crc, parse_section
-from checksum import calculate_checksum
+from console import error, warning, success, notice, checksum_message
 
 # usage 3.41.zip -> 3.41.unpacked.tar
 # read fw1 from zip tds3000_3.41_063354011_tek.zip
@@ -27,6 +27,11 @@ files = [
 p = TekFileProcessor()
 
 p.read(file=rom)
+
+
+outputnames = ["header.bin", "bootloader.bin", "recovery.bin", "compressor.bin", "firmware.z", "firmware.bin", "easteregg.png", "filesystem.bin", "devicedata.bin" ]
+for name in outputnames:
+    p.allocate(size=0, name=name)
 
 p.allocate(size=0, name="header.bin")
 p.allocate(size=0, name="bootloader.bin")

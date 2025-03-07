@@ -1,11 +1,11 @@
 import struct
-from checksum import calculate_checksum
+from checksum import checksum
 
 SECTIONS = {
     "boot": 0x20,
-    "firmware": 0x40000,
+    "firmware": 0x30,
     "decompressor": 0x40,
-    "recovery": 0x4000,
+    "recovery": 0x50,
 }
 FIELDS = ["address", "size", "checksum", "compressed"]
 
@@ -44,4 +44,4 @@ def verify_section_crc(header, section, data):
     start = header[section]["address"] - base
     size = header[section]["size"]
     chunk = data[start:start + size]
-    return calculate_checksum(chunk)
+    return checksum(chunk)
