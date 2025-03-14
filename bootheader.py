@@ -9,21 +9,27 @@ SECTIONS = {
 }
 FIELDS = ["address", "size", "checksum", "compressed"]
 
-def parse_boot_header(data):
-    return {
-        section: {
-            field: struct.unpack_from(">I", data, offset + i * 4)[0]
-            for i, field in enumerate(FIELDS)
-        }
-        for section, offset in SECTIONS.items()
-    }
-
 
 def parse_section(data, offset):
-    return {
+    section = {
         field: struct.unpack_from(">I", data, offset + i * 4)[0]
         for i, field in enumerate(FIELDS)
     }
+    at = section["address"] - 0xFFC00000
+    start = at
+    start += 0x10 if section["compressed"] else 0
+    section["at"] = at # header start
+    section["start"] = start # data start
+    section["end"] = section["start"] + section["size"]
+    return section
+
+def parse_boot_header(data):
+    header = {
+        section: parse_section(data, offset)
+        for section, offset in SECTIONS.items()
+    }
+    return header
+
 
 def boot_header_to_bytes(header):
     data = bytearray(0x60)
@@ -31,17 +37,17 @@ def boot_header_to_bytes(header):
         struct.pack_into(">IIII", data, offset, *[header[section][field] for field in FIELDS])
     return bytes(data)
 
+def print_section(section, values):
+    print(f"{section:<22}{values['address']:<12X}{values['size']:<12}{values['checksum']:<12X}{values['compressed']:<12}")
+
 def print_boot_header(header):
-    print(f"{'Section':<14}{'Address':<12}{'Size':<12}{'Checksum':<12}{'Compressed':<12}")
+    print(f"{'Section':<22}{'Address':<12}{'Size':<12}{'Checksum':<12}{'Compressed':<12}")
     print("-" * 60)
     for section, values in header.items():
-        print(f"{section:<14}{values['address']:<12X}{values['size']:<12}{values['checksum']:<12X}{values['compressed']:<12}")
+        print_section(section, values)
 
-def verify_section_crc(header, section, data):
-    # if section not in header:
-    #     raise ValueError("Invalid section name")
-    base = 0xFFC00000
-    start = header[section]["address"] - base
-    size = header[section]["size"]
-    chunk = data[start:start + size]
+def calc_section_crc(section, data):
+    start = section["start"]
+    end = section["end"]
+    chunk = data[start:end]
     return checksum(chunk)

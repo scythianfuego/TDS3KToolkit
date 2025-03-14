@@ -1,7 +1,8 @@
 from process import TekFileProcessor
 
-from bootheader import parse_boot_header, print_boot_header, verify_section_crc, parse_section
+from bootheader import parse_boot_header, print_boot_header, calc_section_crc, parse_section, print_section
 from console import error, warning, success, notice, checksum_message
+from checksum import checksum
 
 # usage 3.41.zip -> 3.41.unpacked.tar
 # read fw1 from zip tds3000_3.41_063354011_tek.zip
@@ -15,9 +16,11 @@ rom = "roms/tekrom315.bin"
 files = [
     "header.bin",
     "bootloader.bin",
+    "decompressor.bin",
+    "recovery.z",
     "recovery.bin",
-    "compressor.bin",
     "firmware.bin",
+    "firmware.z",
     "easteregg.png",
     "filesystem.bin",
     "devicedata.bin"
@@ -28,20 +31,8 @@ p = TekFileProcessor()
 
 p.read(file=rom)
 
-
-outputnames = ["header.bin", "bootloader.bin", "recovery.bin", "compressor.bin", "firmware.z", "firmware.bin", "easteregg.png", "filesystem.bin", "devicedata.bin" ]
-for name in outputnames:
+for name in files:
     p.allocate(size=0, name=name)
-
-p.allocate(size=0, name="header.bin")
-p.allocate(size=0, name="bootloader.bin")
-p.allocate(size=0, name="recovery.bin")
-p.allocate(size=0, name="compressor.bin")
-p.allocate(size=0, name="firmware.z")
-p.allocate(size=0, name="firmware.bin")
-p.allocate(size=0, name="easteregg.png")
-p.allocate(size=0, name="filesystem.bin")
-p.allocate(size=0, name="devicedata.bin")
 
 p.append(dest="header.bin", src=rom, start="0x0", end="0x100")
 p.append(dest="easteregg.png", src=rom, start="0x26EB60", end="0x280000")
@@ -52,30 +43,37 @@ romdata = p.get(rom)
 header = parse_boot_header(romdata)
 print_boot_header(header)
 
-crc_boot = verify_section_crc(header, "boot", romdata)
-crc_firmware = verify_section_crc(header, "firmware", romdata)
-crc_decompressor = verify_section_crc(header, "decompressor", romdata)
-crc_recovery = verify_section_crc(header, "recovery", romdata)
+# rom header
+crc_boot = calc_section_crc(header["boot"], romdata)
+crc_firmware = calc_section_crc(header["firmware"], romdata)
+crc_decompressor = calc_section_crc(header["decompressor"], romdata)
+crc_recovery = calc_section_crc(header["recovery"], romdata)
 
-print(f"Boot checksum: {crc_boot:08X}")
-print(f"Firmware checksum: {crc_firmware:08X}")
-print(f"Decompressor checksum: {crc_decompressor:08X}")
-print(f"Recovery checksum: {crc_recovery:08X}")
+# actual firmware and recovery headers
+sw_section = parse_section(romdata, header["firmware"]["at"])
+rec_section = parse_section(romdata, header["recovery"]["at"])
+crc_fw = calc_section_crc(sw_section, romdata)
+crc_rec = calc_section_crc(rec_section, romdata)
 
-start = header["firmware"]["address"] - 0xFFC00000 + 0x10
-end = start + header["firmware"]["size"]
+print_section(f"recovery at 0x{header["recovery"]["at"]:X}", rec_section)
+print_section(f"firmware at 0x{header["firmware"]["at"]:X}", sw_section)
 
-p.append(dest="firmware.z", src=rom, start=start, end=end)
+checksum_message("Boot checksum", crc_boot, header["boot"]["checksum"], fail=1)
+checksum_message("Firmware checksum", crc_fw, sw_section["checksum"], fail=1)
+checksum_message("Recovery checksum", crc_rec, rec_section["checksum"], fail=1)
+checksum_message("Decompressor checksum", crc_decompressor, header["decompressor"]["checksum"], fail=1)
+
+p.append(dest="firmware.z", src=rom, start=sw_section["start"], end=sw_section["end"])
 p.unlzw(src="firmware.z", dest="firmware.bin")
+p.append(dest="decompressor.bin", src=rom, start=header["decompressor"]["start"], end=header["decompressor"]["end"])
+p.append(dest="bootloader.bin", src=rom, start=header["boot"]["start"], end=header["boot"]["end"])
+p.append(dest="recovery.z", src=rom, start=rec_section["start"], end=rec_section["end"])
+p.unlzw(src="recovery.z", dest="recovery.bin")
 
-sw_section = parse_section(romdata, 0x40000)
-start = sw_section["address"] - 0xFFC00000 + 0x10
-end = start + sw_section["size"]
-print(f"Software section: {start:08X} - {end:08X}")
-crc_test = calculate_checksum(romdata[start:end])
-print(f"Firmware checksum: {crc_test:08X}")
-p.print_value(text="Expected checksum", name=rom, at="0x40008")
+for name in files:
+    p.print(name=name)
 
-# p.tar_add(output="rom.tar", names=files)
-# p.tar_write(output="rom.tar")
+
+p.tar_add(output="rom.tar", names=files)
+p.tar_write(output="rom.tar")
 

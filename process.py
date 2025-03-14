@@ -24,7 +24,10 @@ class TekFileProcessor:
     def zip_read(self, *, file, path):
         data_store[path] = self.__zip_read(file, path)
 
-    def allocate(self, *, size, name):
+    def tar_read(self, *, file, path):
+        data_store[path] = self.__tar_read(file, path)
+
+    def allocate(self, *, size, name, init=0):
         self.__allocate(name, size)
 
     def append(self, *, dest, src, start, end=None):
@@ -67,8 +70,11 @@ class TekFileProcessor:
 
     # private methods
 
-    def __allocate(self, name: str, size: int):
+    def __allocate(self, name: str, size: int, init: int = 0):
         data_store[name] = bytearray(size)
+        if init != 0:
+            for i in range(size):
+                data_store[name][i] = init
 
     def __append(self, to: str, from_data: bytes, start: int = 0, end: int = None):
         if to in data_store:
@@ -85,7 +91,7 @@ class TekFileProcessor:
                 return file.read()
 
     # Read a file from tar archive at a given path.
-    def __read_tar(self, tarfile_path: str, file_path: str) -> bytes:
+    def __tar_read(self, tarfile_path: str, file_path: str) -> bytes:
         with tarfile.open(tarfile_path, 'r') as tarf:
             with tarf.extractfile(file_path) as file:
                 return file.read()
