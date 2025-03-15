@@ -23,6 +23,12 @@ def parse_section(data, offset):
     section["end"] = section["start"] + section["size"]
     return section
 
+def pack_section(section):
+    data = bytearray(16)  # 4 fields * 4 bytes each
+    for i, field in enumerate(FIELDS):
+        struct.pack_into(">I", data, i * 4, section[field])
+    return bytes(data)
+
 def parse_boot_header(data):
     header = {
         section: parse_section(data, offset)

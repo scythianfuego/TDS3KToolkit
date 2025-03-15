@@ -21,6 +21,9 @@ class TekFileProcessor:
     def read(self, file):
         data_store[file] = self.__read(file)
 
+    def write(self, name):
+        self.__write(name)
+
     def zip_read(self, *, file, path):
         data_store[path] = self.__zip_read(file, path)
 
@@ -28,12 +31,27 @@ class TekFileProcessor:
         data_store[path] = self.__tar_read(file, path)
 
     def allocate(self, *, size, name, init=0):
-        self.__allocate(name, size)
+        self.__allocate(name, size, init)
 
     def append(self, *, dest, src, start, end=None):
         start = int(start, 16) if isinstance(start, str) else start
         end = int(end, 16) if isinstance(end, str) else end
         self.__append(dest, data_store.get(src, b""), start, end)
+
+    def replace(self, *, dest, src=None, data=None, at):
+        if (src==None and data==None):
+            return
+
+        at = int(at, 16) if isinstance(at, str) else at
+        source_data = data if src is None else data_store.get(src, b"")
+        dest_data = data_store.get(dest, bytearray())
+
+        if at + len(source_data) > len(dest_data):
+            # error(f"Replace operation would exceed destination buffer size")
+            return
+
+        dest_data[at:at + len(source_data)] = source_data
+        data_store[dest] = dest_data
 
     def unlzw(self, *, src, dest):
         data_store[dest] = bytearray(unlzw(data_store.get(src)))
@@ -50,6 +68,9 @@ class TekFileProcessor:
     def value(self, *, name, at):
         at = int(at, 16) if isinstance(at, str) else at
         return self.__value(name, at)
+
+    def size(self, *, name):
+        return self.__size(name)
 
     def tar_add(self, *, output, names):
         self.__tar_add(names)
@@ -101,6 +122,10 @@ class TekFileProcessor:
         with open(file_path, "rb") as f:
             return f.read()
 
+    # Write file into filesystem
+    def __write(self, name: str) -> None:
+        with open(name, "wb") as f:
+            f.write(data_store.get(name, b""))
 
     def __tar_add(self, names):
         global directories_added
@@ -135,6 +160,10 @@ class TekFileProcessor:
             cname = "lzw/" + name + ".z"
             data_store[uname] = file["decompressed"]
             data_store[cname] = file["compressed"]
+
+    def __size(self, name):
+        data = data_store.get(name, b"")
+        return len(data)
 
     def __value(self, name, at):
         data = data_store.get(name, b"")

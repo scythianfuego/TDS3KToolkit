@@ -1,7 +1,8 @@
 from process import TekFileProcessor
-from bootheader import parse_boot_header, print_boot_header, calc_section_crc, parse_section, print_section, boot_header_to_bytes
+from bootheader import pack_section, parse_boot_header, print_boot_header, calc_section_crc, parse_section, print_section, boot_header_to_bytes
 from console import error, warning, success, notice, checksum_message
 from checksum import checksum
+import struct
 
 # Input files expected in tar archive
 files = [
@@ -23,11 +24,8 @@ p = TekFileProcessor()
 for name in files:
     p.tar_read(path=name, file="rom.tar")
 
-# Create new ROM file from template
+# Create new ROM file
 p.allocate(size=0x400000, name="rom.bin", init=0xff)
-template_rom = "roms/tekrom315.bin"
-p.read(file=template_rom)
-p.append(dest="rom.bin", src=template_rom, start=0, end=0x400000)
 
 # Read and parse original header
 romdata = p.get("rom.bin")
@@ -40,27 +38,36 @@ p.replace(dest="rom.bin", src="filesystem.bin", at=0x280000)
 p.replace(dest="rom.bin", src="devicedata.bin", at=0x3E0000)
 
 # Write firmware sections
-p.replace(dest="rom.bin", src="bootloader.bin", at=header["boot"]["start"])
-p.replace(dest="rom.bin", src="decompressor.bin", at=header["decompressor"]["start"])
-p.replace(dest="rom.bin", src="firmware.z", at=header["firmware"]["start"])
-p.replace(dest="rom.bin", src="recovery.z", at=header["recovery"]["start"])
+base = 0xFFC00000
+decompressor_at = 0x4000 + p.size(name="recovery.z")
+pe = struct.pack(">8I",
+    0x4,
+    0xFFFEBBDC, 0xFFFEEA4C, 0xFFFEA074,
+    0xFFFE0040, 0xFFFF4420, 0xFFFF92E4, 0xFFE6EB60
+)
 
-# Verify all checksums
-romdata = p.get("rom.bin")
-crc_boot = calc_section_crc(header["boot"], romdata)
-crc_firmware = calc_section_crc(header["firmware"], romdata)
-crc_decompressor = calc_section_crc(header["decompressor"], romdata)
-crc_recovery = calc_section_crc(header["recovery"], romdata)
+p.replace(dest="rom.bin", src="bootloader.bin", at=0x100)
+p.replace(dest="rom.bin", src="firmware.z", at=0x40000 + 0x10)
+p.replace(dest="rom.bin", src="recovery.z", at=0x4000 + 0x10)
+p.replace(dest="rom.bin", src="decompressor.bin", at=decompressor_at)
 
-sw_section = parse_section(romdata, header["firmware"]["at"])
-rec_section = parse_section(romdata, header["recovery"]["at"])
-crc_fw = calc_section_crc(sw_section, romdata)
-crc_rec = calc_section_crc(rec_section, romdata)
+# update headers
+boot = { "address": base + 0x100, "size": p.size(name="bootloader.bin"), "checksum": p.checksum(name="bootloader.bin"), "compressed": 0 }
+recovery = { "address": base + 0x4000, "size": p.size(name="recovery.z"), "checksum": p.checksum(name="recovery.z"), "compressed": 1 }
+firmware = { "address": base + 0x40000, "size": p.size(name="firmware.z"), "checksum": p.checksum(name="firmware.z"), "compressed": 1 }
+decompressor = { "address": base + decompressor_at, "size": p.size(name="decompressor.bin"), "checksum": p.checksum(name="decompressor.bin"), "compressed": 0 }
 
-checksum_message("Boot checksum", crc_boot, header["boot"]["checksum"])
-checksum_message("Firmware checksum", crc_fw, sw_section["checksum"])
-checksum_message("Recovery checksum", crc_rec, rec_section["checksum"])
-checksum_message("Decompressor checksum", crc_decompressor, header["decompressor"]["checksum"])
+print_section("Recovery", recovery)
+
+# top headers
+p.replace(dest="rom.bin", data=pe, at=0x0)
+p.replace(dest="rom.bin", data=pack_section(boot), at=0x20)
+p.replace(dest="rom.bin", data=pack_section(decompressor), at=0x40)
+p.replace(dest="rom.bin", data=pack_section(firmware), at=0x30)
+p.replace(dest="rom.bin", data=pack_section(recovery), at=0x50)
+# in-place headers
+p.replace(dest="rom.bin", data=pack_section(recovery), at=0x4000)
+p.replace(dest="rom.bin", data=pack_section(firmware), at=0x40000)
 
 p.write(name="rom.bin")
 success("ROM packed successfully")
