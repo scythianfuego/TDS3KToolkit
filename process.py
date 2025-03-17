@@ -33,10 +33,11 @@ class TekFileProcessor:
     def allocate(self, *, size, name, init=0):
         self.__allocate(name, size, init)
 
-    def append(self, *, dest, src, start, end=None):
+    def append(self, *, dest, src=None, data=None, start=0, end=None):
         start = int(start, 16) if isinstance(start, str) else start
         end = int(end, 16) if isinstance(end, str) else end
-        self.__append(dest, data_store.get(src, b""), start, end)
+        source_data = data if src is None else data_store.get(src, b"")
+        self.__append(dest, source_data, start, end)
 
     def replace(self, *, dest, src=None, data=None, at):
         if (src==None and data==None):
@@ -98,9 +99,12 @@ class TekFileProcessor:
                 data_store[name][i] = init
 
     def __append(self, to: str, from_data: bytes, start: int = 0, end: int = None):
-        if to in data_store:
-            data_to_append = from_data[start:] if end is None else from_data[start:end]
-            data_store[to].extend(data_to_append)
+        if to not in data_store:
+            data_store[to] = bytearray()
+            print(f"Implicitly allocated: {to}. Check naming!") # should we create it?
+
+        data_to_append = from_data[start:] if end is None else from_data[start:end]
+        data_store[to].extend(data_to_append)
 
     def __get(self, name: str):
         return bytes(data_store.get(name, b""))

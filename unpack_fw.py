@@ -1,5 +1,6 @@
 from process import TekFileProcessor
 from console import error, warning, success, notice, checksum_message
+from strings import decode_table
 
 
 def test_checksums(p):
@@ -16,40 +17,27 @@ def test_checksums(p):
     checksum_message("User firmware checksum", p.checksum(name="lzw/firmware.z"), p.value(name="disk3/fwdisk3.dat", at="0x0C"), 1 )
 
 
-disk34_filenames = [
-    "firmware",
-    "strings_en", "strings_it", "module_1", "strings_de", "module_2",
-    "module_3", "strings_fr", "strings_pt", "module_4", "module_5", "module_6"
-]
+# available locales (scope order): en fr de it es br ru ja kr cn tw
+# ja kr cn tw distinct is on best guess
+locales = [
+    "en", "it", "kr", "de", "es",
+    "ja", "fr", "pt", "ru", "cn",
+    "tw"]
 
+disk34_filenames = ["firmware"] + [f"locale_{locale}" for locale in locales]
+
+# 1 korean 5 chinsese 6 taiwanese
 files_to_save = [
     "service.dat", "recovery.dat", "firmware.dat",
-    "lzw/service.z", "lzw/recovery.z", "lzw/firmware.z",
+    "lzw/service.z", "lzw/recovery.z", "lzw/firmware.z"]
 
-    "strings_en.dat",
-    "strings_it.dat",
-    "strings_de.dat",
-    "strings_fr.dat",
-    "strings_pt.dat",
-    "module_1.dat",
-    "module_2.dat",
-    "module_3.dat",
-    "module_4.dat",
-    "module_5.dat",
-    "module_6.dat",
+outputnames = ["lzw/service.z", "lzw/recovery.z", "tmp/disk34.data", "service.dat", "recovery.dat"]
 
-    "lzw/strings_en.z",
-    "lzw/strings_it.z",
-    "lzw/strings_de.z",
-    "lzw/strings_fr.z",
-    "lzw/strings_pt.z",
-    "lzw/module_1.z",
-    "lzw/module_2.z",
-    "lzw/module_3.z",
-    "lzw/module_4.z",
-    "lzw/module_5.z",
-    "lzw/module_6.z",
-];
+for locale in locales:
+    files_to_save.append(f"locale_{locale}.dat")
+    files_to_save.append(f"lzw/locale_{locale}.z")
+    files_to_save.append(f"locale/strings_{locale}.txt")
+    outputnames.append(f"locale/strings_{locale}.txt")
 
 p = TekFileProcessor()
 
@@ -61,7 +49,6 @@ p.zip_read( file=input, path="disk2/fwdisk2a.dat")
 p.zip_read( file=input, path="disk3/fwdisk3.dat")
 p.zip_read( file=input, path="disk4/fwdisk4.dat")
 
-outputnames = ["lzw/service.z", "lzw/recovery.z", "tmp/disk34.data", "service.dat", "recovery.dat"]
 for name in outputnames:
     p.allocate(size=0, name=name)
 
@@ -76,6 +63,14 @@ p.unlzw( src="lzw/recovery.z", dest="recovery.dat")
 p.split_lzw( src="tmp/disk34.data", names=disk34_filenames)
 
 test_checksums(p)
+
+for locale in locales:
+    results = decode_table(p.get(f"locale_{locale}.dat"))
+    s = "";
+    for i, (offset, string) in enumerate(results):
+        s += f"{i:4d}\t0x{offset:04x}\t{string}\n"
+
+    p.append(data=s.encode('utf-8'), dest=f"locale/strings_{locale}.txt")
 
 print("\nSaving files...")
 for name in files_to_save:
