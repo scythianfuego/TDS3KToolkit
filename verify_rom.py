@@ -1,7 +1,8 @@
 import sys
-from process import TekFileProcessor
+from process import TekFileProcessor, align
 from bootheader import parse_boot_header, print_boot_header, parse_section
 from console import error, warning, success, notice, checksum_message, CYAN, RESET
+
 
 
 def signature_message(text, calculated, expected):
@@ -21,6 +22,7 @@ def checkjunk(data, start, end, expected):
             return i
     return 0
 
+
 # ensure header values are sane
 def check_header_line(line, name, compressed, address, address_max = None):
   if (address_max == None):
@@ -31,7 +33,7 @@ def check_header_line(line, name, compressed, address, address_max = None):
     return False
 
   if line["checksum"] == 0 or line["checksum"] == 0xFFFFFFFF:
-    error(f"{name}: checksum is wrong")
+    error(f"{name}: checksum is corrupt")
     return False
 
   if line["compressed"] != compressed:
@@ -120,66 +122,59 @@ def run_rom_check(rom):
   signature_message("Recovery compressed data corrupt", p.value(name=rom, at="0x4010") & 0xFFFF0000, 0x1F9D0000)
 
 
-  section_message("Verifying checksums (ROM will not boot if failed)")
+  section_message("Checksums (ROM will not boot if failed)")
 
-  start = header["boot"]["address"] - 0xFFC00000
-  end = start + header["boot"]["size"]
+  section = header["boot"]
   checksum_message("Bootloader checksum",
-      p.checksum(name=rom, start=start, end=end),
+      p.checksum(name=rom, start=section["start"], end=section["end"]),
       header["boot"]["checksum"]
   )
 
   start = header["firmware"]["address"] - 0xFFC00000
-  end = start + header["firmware"]["size"]
   section = parse_section(romdata, start)
+  locale_start = align(section["end"])
   checksum_message(f"Firmware checksum at 0x{start:x}",
-      p.checksum(name=rom, start=start + 0x10, end=start+section["size"]),
+      p.checksum(name=rom, start=section["start"], end=section["end"]),
       section["checksum"]
   )
 
 
-  section_message("Verifying checksums (must be correct, but not verified)")
+  section_message("Checksums (must be correct, but not verified)")
 
   start = header["recovery"]["address"] - 0xFFC00000
-  end = start + header["recovery"]["size"]
   section = parse_section(romdata, start)
   checksum_message(f"Recovery checksum at 0x{start:x}",
-      p.checksum(name=rom, start=start + 0x10, end=end),
+      p.checksum(name=rom, start=section["start"], end=section["end"]),
       section["checksum"],
       fail=1
   )
 
 
-  start = header["decompressor"]["address"] - 0xFFC00000
-  end = start + header["decompressor"]["size"]
+  section = header["decompressor"]
   checksum_message("Decompressor checksum",
-      p.checksum(name=rom, start=start, end=end),
+      p.checksum(name=rom, start=section["start"], end=section["end"]),
       header["decompressor"]["checksum"]
   )
 
 
-  section_message("Verifying checksums, not updated with firmware (ignored)")
+  section_message("Checksums, not updated with firmware (ignored)")
 
-  start = header["firmware"]["address"] - 0xFFC00000
-  end = start + header["firmware"]["size"]
-  section = parse_section(romdata, start)
-
+  section = header["firmware"]
   checksum_message("Firmware checksum - header",
-      p.checksum(name=rom, start=start + 0x10, end=end),
+      p.checksum(name=rom, start=section["start"], end=section["end"]),
       header["firmware"]["checksum"],
       fail=0
   )
 
-  start = header["recovery"]["address"] - 0xFFC00000
-  end = start + header["recovery"]["size"]
+  section = header["recovery"]
   checksum_message("Recovery checksum",
-      p.checksum(name=rom, start=start + 0x10, end=end),
+      p.checksum(name=rom, start=section["start"], end=section["end"]),
       header["recovery"]["checksum"],
       fail=0
   )
 
 
-  section_message("Verifying checksums, other")
+  section_message("Checksums, other")
 
   # Raptor team PNG
   checksum_message("Easter egg checksum", p.checksum(name=rom, start=0x26EB60, end=0x280000), 0x2A5DADCC )
@@ -187,7 +182,32 @@ def run_rom_check(rom):
   checksum_message("Device data checksum", p.checksum(name=rom, start=0x3E0000, end=0x3FFFFF) )
 
   # TODO: check if compressed data is actually unpackable
-  # TODO: check fylesystem consistency
+  # TODO: check filesystem consistency
+
+  section_message("Checking locale data")
+  offset = locale_start
+  locale_count = 0
+
+  while True:
+    size = p.value(name=rom, at=offset)
+    magic = p.value(name=rom, at=offset+4) & 0xffff0000
+    if size > 0x10000:
+        break
+
+    if (magic != 0x1F9D0000):
+        warning(f"Locale{locale_count}: data corrupt")
+
+    if (size < 0x5000 or size > 0xA000):
+        warning(f"Locale{locale_count}: unexpected size {size}")
+
+    offset += size
+    offset = align(offset)
+    locale_count += 1
+
+  if (locale_count != 11):
+    warning(f"Unexpected number of locales: {locale_count}")
+  else:
+    success("Found all 11 locales")
 
   print("\nRom check complete\n")
 

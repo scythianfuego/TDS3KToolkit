@@ -11,6 +11,19 @@ from checksum import checksum
 def readhex(value: str) -> int:
     return int(value, 16 if value.lower().startswith("0x") else 10)
 
+def align(value):
+    return (value + 3) & ~3
+
+def localename(index):
+    names = [ "en", "it", "kr", "de", "es", "ja", "fr", "pt", "ru", "cn", "tw"]
+    suffix = f"{index:2}" if index >= len(names) else names[index]
+    return f"locale_{suffix}"
+
+# available locales (scope order): en fr de it es br ru ja kr cn tw
+# ja kr cn tw distinct is on best guess
+def known_locales(extension=""):
+    return [localename(i) + extension for i in range(11)]
+
 data_store = {}
 tar_buffer = BytesIO()
 directories_added = set()
