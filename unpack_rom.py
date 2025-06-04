@@ -100,5 +100,5 @@ if len(sys.argv) == 3:
     output_tar = sys.argv[2]
     unpack_rom(rom, output_tar)
 else:
-    print("Usage: python unpack_rom.py <rom_file>")
+    print("Usage: python unpack_rom.py <rom_file> <output.tar>")
     sys.exit(1)

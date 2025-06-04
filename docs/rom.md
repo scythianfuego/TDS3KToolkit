@@ -62,13 +62,12 @@ Files for v3.41 firmware are:
 
 - fwdisk3.dat (3 of 4) + fwdisk4.dat (4 of 4) - 12 lzw files.
   This is user scope firmware copied into ROM at 0x40000 intact - size 1968424 bytes (0x1e0927)  
-  (Which specifially means it is not being decompressed, but copied as is).  
-  fdisk4 contains more files, some look like translation strings, some like software for modules (video, advanced trigger etc)
+  (Which specifially means it is not being decompressed, but copied as is).
+  fdisk4 contains more files, containing locales, copied after the software (as is)
 
-  Translation files are a database of offsets, followed by zero-terminated strings.  
-  Offsets are relative to start of the block.
-  String data always starts at 0x1BA4 (value which is added to every offset)
-  0x1BA0 is always zero. That all means there are 1768 records.
+  Translation files are a database of offsets generally in reverse order,
+  followed by a set zero-terminated strings.  
+  Offsets are relative to start of the string data.
 
 ## FLASH ROM
 
@@ -107,9 +106,16 @@ Bootloader behaviour [is described here](bootloader.md)
 
 LZW compressed recovery software is located at 0x4000, followed by LZW decompressor around 0x3E43C-0x40000.
 Uncompressed contents get copied by decompressor into DRAM at 0x00600000.
+Decompressor ends by the following sequence: 0x00 2092 times, then 0x01020304
+
+The data after decompressor (as referenced in header) and before 0x40000 is non-zero, is it leftover junk or some unreferenced data? Oscilloscope works without it.
 
 Compressed software always has its own HeaderLine at 0x4000 and 0x40000.
 Actual LZW packed data starts at 0x40010, ends on or before 0x26EB60
+
+Main oscilloscope software is followed by compressed locales, total of 11,
+in the same format as on floppy disks: 4 byte size, aligned to 4 bytes, then
+compressed data
 
 # Filesystem
 
@@ -150,15 +156,15 @@ Where's first filesystem header? (when "empty"?)
 
 0x26EB60 - 0x280060 PNG team photoshoot at next block at 0x00280804
 
-{
-u8 fixed0;
-u8 increasing; // this number is increasing. looks like this could be the file version when it is erased and overwritten
-u8 fixed2;
-u8 fixed3;
-u32 unk; // 0x1fff???? could be an address mask, partition boundary, or a special flag.
-u32 file_offset; // file position offset
-u32 mostly_zero_bits; // looks like flags
-} FSRecord;
+    {
+        u8 fixed0;
+        u8 increasing; // this number is increasing. looks like this could be the file version when it is erased and overwritten
+        u8 fixed2;
+        u8 fixed3;
+        u32 unk; // 0x1fff???? could be an address mask, partition boundary, or a special flag.
+        u32 file_offset; // file position offset
+        u32 mostly_zero_bits; // looks like flags
+    } FSRecord;
 
 0x3C0804 - 0x3D9B48 blue/white/zeroes, 40 byte records? Ends up with tons of strings,
 including full "alphabet" (00 00 03 a, 00 00 03 b), @XYZZY and TDS 3052. end is unaligned
