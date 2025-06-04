@@ -1,6 +1,6 @@
-from process import TekFileProcessor, known_locales
-from console import checksum_message
-from strings import decode_table
+from teklib.process import TekFileProcessor, known_locales
+from teklib.console import checksum_message
+from teklib.strings import decode_table
 
 
 def test_checksums(p):

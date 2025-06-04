@@ -1,5 +1,5 @@
 import struct
-from checksum import checksum
+from .checksum import checksum
 
 SECTIONS = {
     "boot": 0x20,

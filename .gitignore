@@ -6,6 +6,7 @@ __pycache__/
 ftlfs/
 roms/*
 locales/*
+other/*
 
 *.bin
 *.tar

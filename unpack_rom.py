@@ -1,10 +1,11 @@
-from process import TekFileProcessor, align, localename, known_locales
-
-from bootheader import parse_boot_header, print_boot_header, calc_section_crc, parse_section, print_section
-from console import error, warning, success, notice, checksum_message
-from checksum import checksum
+from teklib import (
+    TekFileProcessor, align, localename, known_locales,
+    parse_boot_header, print_boot_header,
+    calc_section_crc, parse_section, print_section,
+    error, warning, success, notice, checksum_message,
+    checksum
+)
 import sys
-
 
 def unpack_rom(rom, output_tar):
     files = [

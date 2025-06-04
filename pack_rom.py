@@ -1,7 +1,11 @@
-from process import TekFileProcessor, known_locales, align
-from bootheader import pack_section, parse_boot_header, print_boot_header, calc_section_crc, parse_section, print_section, boot_header_to_bytes
-from console import error, warning, success, notice, checksum_message
-from checksum import checksum
+from teklib import (
+    TekFileProcessor, known_locales, align,
+    pack_section, parse_boot_header, print_boot_header,
+    calc_section_crc, parse_section, print_section,
+    boot_header_to_bytes,
+    error, warning, success, notice, checksum_message,
+    checksum
+)
 import struct
 
 # Input files expected in tar archive

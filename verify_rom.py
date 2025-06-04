@@ -1,7 +1,7 @@
 import sys
-from process import TekFileProcessor, align
-from bootheader import parse_boot_header, print_boot_header, parse_section
-from console import error, warning, success, notice, checksum_message, CYAN, RESET
+from teklib.process import TekFileProcessor, align
+from teklib.bootheader import parse_boot_header, print_boot_header, parse_section
+from teklib.console import error, warning, success, notice, checksum_message, CYAN, RESET
 
 
 

@@ -1,7 +1,5 @@
 import struct
-from uncompress import unlzw
-
-
+from .uncompress import unlzw
 
 def splitlzw(data_chunk, filenames):
     index = 0

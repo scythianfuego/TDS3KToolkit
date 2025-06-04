@@ -3,9 +3,9 @@ import tarfile
 import zipfile
 import struct
 from io import BytesIO
-from uncompress import unlzw
-from splitlzw import splitlzw
-from checksum import checksum
+from .uncompress import unlzw
+from .splitlzw import splitlzw
+from .checksum import checksum
 
 # Convert a string into an integer offset, detecting hex (0x) or decimal.
 def readhex(value: str) -> int:
