@@ -1,0 +1,4 @@
+typedef struct
+{
+    char device[]; // Model string, e.g. "TDS 3052".
+} file;

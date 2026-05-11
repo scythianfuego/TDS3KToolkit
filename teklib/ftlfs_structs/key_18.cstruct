@@ -1,0 +1,38 @@
+typedef struct
+{
+    // Dump mode 0: six 4-bit speed-bias values; accessor defaults to 0x494949.
+    uint32 packedSpeedBias;
+    // Dump mode 1: three 4-bit TCC values; accessor defaults to 0x040404.
+    uint32 packedTcc;
+    // Dump mode 2: three 4-bit ps200 values; accessor defaults to 0x060606.
+    uint32 packedPs200;
+    int32 skewPs20; // Dump mode 4 multiplies this value by 20 ps.
+    // Firmware dump label says "ADC FISO gain indices"; calibration copies SCAMP/ADC
+    // gain-index selections here during the FISO path, not a literal FISO hardware gain.
+    uint32 adcFisoGainIndex[3];
+    // Per-channel accessor reads this; calibration clears it before filling slotData.
+    // Meaning still open.
+    int32 word1c;
+    uint32 reserved20[4]; // Zero in defaults and not printed by the factory-acq dump.
+    // Raw acquisition tables at slot+0x30..+0x5CFF; axes are not named yet.
+    int16 slotData[6][198][10];
+} factory_acq_slot;
+
+typedef struct
+{
+    int32 tbicHwGain; // Dump mode 3, tail+0x00.
+    // Accessed through a firmware state map; indexes 0..5 observed, index 6 still open.
+    int32 tailTable[7];
+    int32 reserved20[9];       // Zero in defaults and not printed by the factory-acq dump.
+    int32 tbcClockPhaseIndex;  // Dump mode 8, tail+0x44.
+    float triggerDiv2ClockDac; // Dump mode 9, tail+0x48.
+    uint32 reserved4c[2];      // Zero in defaults and not printed by the factory-acq dump.
+    int16 invalid;             // Loader checks signed value at tail+0x54; save clears it before nvMemPut.
+    uint16 reserved56;         // Trailer padding; not touched by the load/save validity check or dump.
+} factory_acq_tail;
+
+typedef struct
+{
+    factory_acq_slot channel[4]; // Four physical channel slots, each 0x5D00 bytes.
+    factory_acq_tail tail;       // Shared 0x58-byte tail at file offset 0x17400.
+} file;

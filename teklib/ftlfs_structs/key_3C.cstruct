@@ -1,0 +1,7 @@
+typedef struct
+{
+    uint32 status;     // Diagnostic history status word; helper returns/stores this at +0.
+    uint32 packedTime; // Formatted by firmware as "%02x:%02x:%02x"; zero means no time.
+    uint32 packedDate; // Formatted by firmware as "%02x-%02x-%02x"; also decoded to date parts.
+    uint8 text[32];    // Diagnostic history text bytes; raw because current records contain leading NULs.
+} file;

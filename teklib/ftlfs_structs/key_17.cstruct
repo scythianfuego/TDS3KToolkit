@@ -1,0 +1,17 @@
+typedef struct
+{
+    uint32 bitWeight[5]; // Five ADC bit-weight coefficients printed by the key 0x17 dump.
+} adc_bit_weights;
+
+typedef struct
+{
+    adc_bit_weights adc[3]; // Three ADC paths per channel.
+} adc_bit_weights_channel;
+
+typedef struct
+{
+    // Four physical channel slots; 2-channel scopes keep the upper slots defaulted.
+    adc_bit_weights_channel channel[4];
+    uint8 invalid;     // Loader checks this byte; save clears it before nvMemPut.
+    uint8 reserved[3]; // Padding after invalid.
+} file;

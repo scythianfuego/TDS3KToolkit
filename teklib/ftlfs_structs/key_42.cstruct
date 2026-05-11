@@ -1,0 +1,12 @@
+typedef struct
+{
+    uint32 language;              // PARM_Language.
+    uint32 calFactoryNotifyHours; // PARM_CalFactory_notifyHours.
+    double calFactoryNotifyYears; // PARM_CalFactory_notifyYears.
+    uint32 rs232Baud;             // PARM_Rs232_baud.
+    uint32 rs232Flagging;         // PARM_Rs232_flagging.
+    uint32 rs232Eol;              // PARM_Rs232_eol.
+    uint32 gpibConfig;            // PARM_Gpib_config.
+    uint32 gpibAddress;           // PARM_Gpib_address.
+    uint32 reserved24;            // Included in nvMemPut len 0x28; loader does not use it.
+} file;

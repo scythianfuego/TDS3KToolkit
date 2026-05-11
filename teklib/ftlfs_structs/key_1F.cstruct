@@ -1,0 +1,4 @@
+typedef struct
+{
+    uint32 bootCounter; // Startup/session counter; DevelInit writes this record as 1.
+} file;

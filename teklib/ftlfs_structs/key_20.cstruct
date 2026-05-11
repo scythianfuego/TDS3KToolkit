@@ -1,0 +1,5 @@
+typedef struct {
+    // PASSWord/NEWpass password, 10 chars plus NUL.
+    // Firmware defaults this record to "XYZZY"; manual says XYZZY is always valid.
+    char password[11];
+} file;

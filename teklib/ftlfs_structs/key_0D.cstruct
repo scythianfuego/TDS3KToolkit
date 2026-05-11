@@ -1,0 +1,32 @@
+typedef struct
+{
+    uint32 state;       // Reference header state; writer stores 1 for empty/off, 2 for saved data.
+    uint32 packedTime;  // Time-like word from helper near refWriteRefToNv; read back with header.
+    uint32 packedDate;  // Date-like word from helper near refWriteRefToNv; read back with header.
+    uint8 label[32];    // Preserved from the previous header when a reference is overwritten.
+    uint32 reserved2c;
+
+    double xScale;      // Display/source scale copied while saving the reference.
+    double xPosition;
+    double yScale;
+    double yPosition;
+
+    uint32 pointFormat; // WFMPre PT_FMT-like enum; 1/2 observed.
+    uint32 reserved54;
+    double xIncrementSource;
+    uint32 recordLength; // 500 or 10000; waveform data is stored as 16-bit points.
+    uint32 format64;
+    double xIncrement;   // WFMPre XINcr.
+    double xZero;        // WFMPre XZEro.
+    double yOffset;
+    uint32 yUnit;        // Internal unit enum; 3 is volts in current samples.
+    uint32 reserved84;
+    double yMult;        // WFMPre YMUlt-like scale factor.
+    double yZero;        // WFMPre YZEro-like offset.
+    uint32 unknown98[6]; // Internal display/source fields; some samples contain RAM-looking values.
+    double yScale2;
+    double yPosition2;
+    double yOffset2;
+    double scaleRatio;
+    uint32 unknownD0[4];
+} file;

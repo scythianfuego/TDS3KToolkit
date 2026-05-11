@@ -170,7 +170,7 @@ def unlzw(inp) -> bytes:
             # code we drop through (prev) will be a valid index so that
             # random input does not cause an exception
             if (code != end + 1) or (prev > end):
-                raise ValueError("Invalid Data: Invalid code detected")
+                raise ValueError(f"Invalid Data: Invalid code detected at {nxt}/{inlen}")
             stack.append(final)
             code = prev
 

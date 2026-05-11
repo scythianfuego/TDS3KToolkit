@@ -1,0 +1,37 @@
+typedef struct
+{
+    int16 word[2]; // Raw signed word pair; detailed meaning still open.
+} spc_acq_word_pair;
+
+typedef struct
+{
+    spc_acq_word_pair channel[4]; // Four channel slots in one acquisition row.
+} spc_acq_row;
+
+typedef struct
+{
+    int16 word[2]; // Selector-specific correction word pair.
+} spc_acq_selector;
+
+typedef struct
+{
+    spc_acq_selector selector[2]; // Two selector entries per channel.
+} spc_acq_channel_correction;
+
+typedef struct
+{
+    spc_acq_channel_correction channel[4]; // Four channel correction entries.
+} spc_acq_correction_table;
+
+typedef struct
+{
+    spc_acq_row table0[198];                 // First 198-row SPC acquisition table.
+    spc_acq_row table1[198];                 // Second 198-row SPC acquisition table; copied from key23+0x0C60.
+    spc_acq_correction_table correction18c0; // Correction table at file offset 0x18C0.
+    spc_acq_correction_table correction18e0; // Correction table at file offset 0x18E0.
+    spc_acq_correction_table correction1900; // Correction table at file offset 0x1900.
+    spc_acq_correction_table correction1920; // Correction table at file offset 0x1920.
+    uint16 reserved1940[112];                // File offset 0x1940..0x1A1F; not mapped yet.
+    int16 invalid;                           // Loader/save status word at file offset 0x1A20.
+    uint16 reserved1a22;                     // Trailer padding.
+} file;

@@ -1,0 +1,4 @@
+typedef struct {
+    // *PUD protected user-data string, up to 300 chars plus NUL.
+    char protectedUserData[301];
+} file;

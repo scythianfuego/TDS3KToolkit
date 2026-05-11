@@ -1,0 +1,27 @@
+typedef struct
+{
+    float refDcBalance[3];          // Reference DC balance points.
+    float zeroCoarseDac_or_balance; // Zero coarse DAC/balance term; name still provisional.
+    float zeroFineDac_or_balance;   // Zero fine DAC/balance term; name still provisional.
+    // Early table before preamp deltas; firmware meaning still open.
+    float earlyOffsetOrScale_unknown[32];
+    float preampBalanceDelta[6];       // Preamp balance deltas.
+    float balanceInvertDelta;          // Balance delta for invert path.
+    float balanceFullBwDelta;          // Balance delta for full-bandwidth path.
+    float balance150MHzBwDelta;        // Balance delta for 150 MHz bandwidth path.
+    float balanceRORDelta;             // Balance delta for ROR path.
+    float relPaGain[6];                // Relative preamp gain terms.
+    float relInvertGain;               // Relative gain for invert path.
+    float varigainSlope[6][7];         // Varigain slope table.
+    float varigainRatioBase[6][7];     // Varigain ratio-base table.
+    float vgainBalanceIntercept[6][7]; // Varigain balance intercept table.
+    // Version 7 tail at the point where v8 has the full slope table.
+    float vgainBalanceSlope_or_v7_tail[8];
+} vertical_spc_channel_v7;
+
+typedef struct
+{
+    vertical_spc_channel_v7 channel[4]; // Four physical channel slots.
+    uint16 version;                     // Size-specific schema for version 7 records.
+    char firmware[18];                  // Firmware/build string.
+} file;

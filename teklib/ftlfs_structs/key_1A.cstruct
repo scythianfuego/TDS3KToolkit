@@ -1,0 +1,21 @@
+typedef struct
+{
+    float extExt10Offset[2];         // External trigger EXT/EXT10 offset terms.
+    float extExt10LinDivsPerVolt[2]; // External trigger EXT/EXT10 linear divs-per-volt terms.
+    float line50PctVal;              // Line trigger 50 percent value.
+    float hystDacVal[4];             // Main trigger hysteresis DAC values.
+    float ext1HystDacVal[4];         // EXT trigger hysteresis DAC values.
+    float ext10HystDacVal[4];        // EXT10 trigger hysteresis DAC values.
+    float hfLfRejectOffset[2];       // HF/LF reject offsets.
+    float extExt10NegSlopeOffset[2]; // EXT/EXT10 negative-slope offsets.
+    float dummy[2];                  // Firmware labels these as dummy 0..1.
+} trigger_factory_side;
+
+typedef struct
+{
+    trigger_factory_side trigger[2]; // Trigger sides A and B, each 0x5C bytes.
+    uint32 filter30Khz;              // Dump mode 3 prints this filter setting.
+    uint32 filter80Khz;              // Dump mode 3 prints this filter setting.
+    uint16 version;                  // Save path writes version 5.
+    uint16 reservedc2;               // Trailer padding.
+} file;

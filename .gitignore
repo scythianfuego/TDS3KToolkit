@@ -1,9 +1,11 @@
 __pycache__/
+.venv/
 *.pyc
 *.pyo
 *.pyd
 
 ftlfs/
+out_ftlfs/
 roms/*
 locales/*
 other/*

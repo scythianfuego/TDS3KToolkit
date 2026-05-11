@@ -82,7 +82,8 @@ When looking for executable code, search for following signature (common for all
 Startup is located at 0x0, code entry point is at 0x100 which jumps to 0xB00 where actual code starts.  
 Oscillscope calls this section "Boot", this document will refer to is as bootloader.
 
-Data before 0x20 has unknown meaning. 0x60 to 0x100 is empty.
+4 bytes at 0x0 is a bootloader version. Boot = 0 for TDS30xx and Boot = 6 for TDS30xxB
+Other data before 0x20 is unknown. 0x60 to 0x100 is empty.
 At 0x20 there is software lookup table, each line has a following structure:
 
     {
@@ -107,6 +108,7 @@ Bootloader behaviour [is described here](bootloader.md)
 LZW compressed recovery software is located at 0x4000, followed by LZW decompressor around 0x3E43C-0x40000.
 Uncompressed contents get copied by decompressor into DRAM at 0x00600000.
 Decompressor ends by the following sequence: 0x00 2092 times, then 0x01020304
+Scope LZW decompressor presumably ignores errors when unpacking.
 
 The data after decompressor (as referenced in header) and before 0x40000 is non-zero, is it leftover junk or some unreferenced data? Oscilloscope works without it.
 
