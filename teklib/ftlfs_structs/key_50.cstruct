@@ -1,0 +1,12 @@
+// FISO timing error counters, dumped as four pk2pk/rms byte pairs.
+
+typedef struct
+{
+    uint8 pk2pk;
+    uint8 rms;
+} fiso_timing_error_pair;
+
+typedef struct
+{
+    fiso_timing_error_pair pair[4];
+} file;

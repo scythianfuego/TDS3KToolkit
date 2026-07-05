@@ -1,0 +1,9 @@
+// Reference waveform sample data for REF4, paired with header key 0x0D.
+// Firmware writes from the in-memory header's sample_data_ptr with length
+// header.pointCount * 2. The live filesystem stores the maximum 10000 points
+// as one plain 16-bit waveform array; use key_0D.pointCount for active length.
+
+typedef struct
+{
+    int16 sample[10000];
+} file;

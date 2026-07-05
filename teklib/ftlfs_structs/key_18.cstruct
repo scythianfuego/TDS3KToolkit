@@ -6,16 +6,27 @@ typedef struct
     uint32 packedTcc;
     // Dump mode 2: three 4-bit ps200 values; accessor defaults to 0x060606.
     uint32 packedPs200;
-    int32 skewPs20; // Dump mode 4 multiplies this value by 20 ps.
-    // Firmware dump label says "ADC FISO gain indices"; calibration copies SCAMP/ADC
-    // gain-index selections here during the FISO path, not a literal FISO hardware gain.
+    // Dump mode 4 prints this value * 20 ps; calSkew subtracts the averaged
+    // measured crossing skew from it.
+    int32 skewPs20;
+    // Firmware dump label says "ADC FISO gain indices". The ScampGainCal path copies
+    // scampGainIndex selections here during FISO setup; those are selector indices,
+    // not literal analog gain readings.
     uint32 adcFisoGainIndex[3];
-    // Per-channel accessor reads this; calibration clears it before filling slotData.
-    // Meaning still open.
+    // Per-channel accessor reads this. TBC phase setup and calSkew clear it for
+    // channel 0; calSkew adjusts it for later channels during crossing alignment.
     int32 word1c;
     uint32 reserved20[4]; // Zero in defaults and not printed by the factory-acq dump.
-    // Raw acquisition tables at slot+0x30..+0x5CFF; axes are not named yet.
-    int16 slotData[6][198][10];
+    // Factory acquisition timing/filter table at slot+0x30..+0x5CFF.
+    // Producer makeIntegerFilter stores ten signed taps per row; loader synthesizes
+    // an 11th tap as negative sum before writing acquisition SRAM filters.
+    // six decimation values - 1, 2, 4, 5, 10, 20
+    // 197th-order FIR filter, ten taps, 11th negative = zero DC gain
+    // Actual shape from dump:
+    // Doesn’t change DC / offset calibration
+    // Rolloff compensation: adds more correction at higher frequencies
+    // Also compensates frontend unevenness and ADC path mismatch
+    int16 compensationFilterCoeff[6][198][10];
 } factory_acq_slot;
 
 typedef struct

@@ -1,32 +1,32 @@
 typedef struct
 {
     uint32 state;       // Reference header state; writer stores 1 for empty/off, 2 for saved data.
-    uint32 packedTime;  // Time-like word from helper near refWriteRefToNv; read back with header.
-    uint32 packedDate;  // Date-like word from helper near refWriteRefToNv; read back with header.
+    uint32 packedTime;  // Saved from helper sub_18474C on non-empty writes; cleared for empty refs.
+    uint32 packedDate;  // Saved from helper sub_184770 on non-empty writes; cleared for empty refs.
     uint8 label[32];    // Preserved from the previous header when a reference is overwritten.
     uint32 reserved2c;
 
-    double xScale;      // Display/source scale copied while saving the reference.
-    double xPosition;
-    double yScale;
-    double yPosition;
+    double displayXScale;    // Caller-provided display scale, or sampleInterval * pointCount * 0.1.
+    double displayXPosition; // Caller-provided display position, or default 0.5.
+    double displayYScale;    // Caller-provided vertical scale, or copied from normalizedDisplayYScale.
+    double displayYPosition; // Caller-provided vertical position, or copied from normalizedDisplayYPosition.
 
     uint32 pointFormat; // WFMPre PT_FMT-like enum; 1/2 observed.
     uint32 reserved54;
-    double xIncrementSource;
-    uint32 recordLength; // 500 or 10000; waveform data is stored as 16-bit points.
-    uint32 format64;
-    double xIncrement;   // WFMPre XINcr.
-    double xZero;        // WFMPre XZEro.
+    double sourceXIncrement;
+    uint32 pointCount;   // Writer clamps to 500 or 10000; data record length is pointCount * 2.
+    uint32 formatOrSourceFlags;
+    double sampleInterval; // Recomputed by sub_1162CC(sourceXIncrement, pointCount).
+    double xZero;          // WFMPre XZEro.
     double yOffset;
     uint32 yUnit;        // Internal unit enum; 3 is volts in current samples.
     uint32 reserved84;
-    double yMult;        // WFMPre YMUlt-like scale factor.
-    double yZero;        // WFMPre YZEro-like offset.
-    uint32 unknown98[6]; // Internal display/source fields; some samples contain RAM-looking values.
-    double yScale2;
-    double yPosition2;
-    double yOffset2;
-    double scaleRatio;
-    uint32 unknownD0[4];
+    double normalizedYScale; // WFMPre YMUlt-like scale factor.
+    double normalizedYZero;  // WFMPre YZEro-like offset.
+    uint32 internalDisplayWords[6]; // Still internal; samples contain small values and RAM-looking words.
+    double normalizedDisplayYScale; // Writer adds scaleRatio then clamps to a legal range.
+    double normalizedDisplayYPosition;
+    double normalizedDisplayYOffset; // Writer adds scaleRatio before saving.
+    double scaleRatio;               // Consumed as a delta, then stored as 1.0 on flash.
+    uint32 internalTailWords[4];
 } file;

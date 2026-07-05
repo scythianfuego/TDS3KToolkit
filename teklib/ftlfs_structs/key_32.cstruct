@@ -1,0 +1,17 @@
+// SPC acquisition packed stream: channel 4, chunk 2.
+// Firmware expands this to channel offset +0x15A80 in the 0x19860-byte block.
+// calGOFisoS / FISO sample-mode gain-offset body.
+// Each 3-byte element stores two signed 12-bit lanes; see key_24.cstruct.
+
+typedef struct
+{
+    uint8 low12_bits_7_0;
+    uint8 high12_bits_3_0:4;
+    uint8 low12_bits_11_8:4;
+    uint8 high12_bits_11_4;
+} spc_acq_packed_pair;
+
+typedef struct
+{
+    spc_acq_packed_pair pair[0x0A0E];
+} file;

@@ -1,0 +1,14 @@
+// Mask-test user mask 6 point list, paired with :MASK:USER:MASK6:POINTSP?.
+// First word is range-checked as <= 100. Remaining space is 100 x/y pairs.
+
+typedef struct
+{
+    int32 x;
+    int32 y;
+} mask_point;
+
+typedef struct
+{
+    uint32 pointCount;
+    mask_point point[100];
+} file;

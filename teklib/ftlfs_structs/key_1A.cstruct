@@ -14,8 +14,8 @@ typedef struct
 typedef struct
 {
     trigger_factory_side trigger[2]; // Trigger sides A and B, each 0x5C bytes.
-    uint32 filter30Khz;              // Dump mode 3 prints this filter setting.
-    uint32 filter80Khz;              // Dump mode 3 prints this filter setting.
+    uint32 filter30KhzTrim;          // Bit mask, default = 0x180
+    uint32 filter80KhzTrim;          // Dump mode 3 prints these filter settings.
     uint16 version;                  // Save path writes version 5.
     uint16 reservedc2;               // Trailer padding.
 } file;

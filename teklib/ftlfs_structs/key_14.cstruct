@@ -1,0 +1,10 @@
+// Power-up settings snapshot, firmware 3.41/Sicco/current.
+// On flash this record is length-prefixed compressed data produced by sub_1C8108.
+// Decode it first, then parse the 0xA80-byte image with key_14_decoded_0A80.cstruct.
+
+typedef struct
+{
+    // Big-endian decoded length word. Current descriptor set expects 0x00000A80.
+    uint32 decodedLength;
+    uint8 compressedData[];
+} file;

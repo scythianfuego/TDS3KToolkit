@@ -1,0 +1,66 @@
+{
+  "source": "initDefaultFactoryAcqCal_maybe",
+  "key_hex": "0x18",
+  "size_hex": "0x17458",
+  "note": "Generated-by-code default, not a contiguous firmware blob. timingFilterCoeff is omitted because initDefaultFactoryAcqCal_maybe zeroes the full payload before stamping header/tail defaults.",
+  "channel": [
+    {
+      "packedSpeedBias": 4802889,
+      "packedTcc": 263172,
+      "packedPs200": 394758,
+      "skewPs20": 0,
+      "adcFisoGainIndex": [25, 25, 25],
+      "word1c": 0,
+      "reserved20": [0, 0, 0, 0],
+      "timingFilterCoeff_omitted": {"shape": [6, 198, 10], "default": 0}
+    },
+    {
+      "packedSpeedBias": 4802889,
+      "packedTcc": 263172,
+      "packedPs200": 394758,
+      "skewPs20": 0,
+      "adcFisoGainIndex": [25, 25, 25],
+      "word1c": 0,
+      "reserved20": [0, 0, 0, 0],
+      "timingFilterCoeff_omitted": {"shape": [6, 198, 10], "default": 0}
+    },
+    {
+      "packedSpeedBias": 4802889,
+      "packedTcc": 263172,
+      "packedPs200": 394758,
+      "skewPs20": 0,
+      "adcFisoGainIndex": [25, 25, 25],
+      "word1c": 0,
+      "reserved20": [0, 0, 0, 0],
+      "timingFilterCoeff_omitted": {"shape": [6, 198, 10], "default": 0}
+    },
+    {
+      "packedSpeedBias": 4802889,
+      "packedTcc": 263172,
+      "packedPs200": 394758,
+      "skewPs20": 0,
+      "adcFisoGainIndex": [25, 25, 25],
+      "word1c": 0,
+      "reserved20": [0, 0, 0, 0],
+      "timingFilterCoeff_omitted": {"shape": [6, 198, 10], "default": 0}
+    }
+  ],
+  "tail": {
+    "tbicHwGain": 112,
+    "tailTable": [350, 300, 500, 500, 500, 500, 600],
+    "reserved20": [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "tbcClockPhaseIndex": 0,
+    "triggerDiv2ClockDac": 0.0,
+    "reserved4c": [0, 0],
+    "invalid": 0,
+    "reserved56": 0
+  },
+  "hex_hints": {
+    "packedSpeedBias": "0x00494949",
+    "packedTcc": "0x00040404",
+    "packedPs200": "0x00060606",
+    "adcFisoGainIndex": "0x19",
+    "tbicHwGain": "0x70",
+    "tailTable": ["0x15E", "0x12C", "0x1F4", "0x1F4", "0x1F4", "0x1F4", "0x258"]
+  }
+}
