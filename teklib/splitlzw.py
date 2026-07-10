@@ -1,8 +1,10 @@
 import struct
+from .console import warning
 from .uncompress import unlzw
 
 def splitlzw(data_chunk, filenames):
-    index = 0
+    name_index = 0
+    invalid_index = 0
     files = []
     start_offset = 0
     offset = 4
@@ -33,11 +35,18 @@ def splitlzw(data_chunk, filenames):
         try:
             output = unlzw(buffer)
         except Exception as e:
-            print(f"Error decompressing chunk at {start_offset:08X}-{end_offset:08x}: {e}")
-            output = b''
+            warning(
+                f"LZW chunk at 0x{start_offset:08X}..0x{end_offset:08X} "
+                f"could not be unpacked: {e}"
+            )
+            output = None
 
-        name = filenames[index] if index < len(filenames) else f"buffer_{index}"
-        index += 1
+        if output is None:
+            name = f"invalid_{invalid_index:02d}"
+            invalid_index += 1
+        else:
+            name = filenames[name_index] if name_index < len(filenames) else f"buffer_{name_index}"
+            name_index += 1
         files.append({
             "name": name,
             'compressed': buffer,

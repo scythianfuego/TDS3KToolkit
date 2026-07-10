@@ -1,20 +1,34 @@
 import sys
+import struct
 from teklib.process import TekFileProcessor, align
 from teklib.bootheader import parse_boot_header, print_boot_header, parse_section
-from teklib.console import error, warning, success, notice, checksum_message, CYAN, RESET
+from teklib.console import error, warning, success, checksum_message, CYAN, RESET
 
 
+failure_count = 0
+
+
+def fail(text):
+    global failure_count
+    failure_count += 1
+    error(text)
 
 def signature_message(text, calculated, expected):
     if (calculated != expected):
-        error(f"{text:<35} = {calculated:08X} --> failed")
+        fail(f"{text:<35} = {calculated:08X} --> failed")
+        return False
+    return True
 
 def section_message(text):
     print(f"\n-> {CYAN}{text}{RESET}\n")
 
-def signature_fail(text, calculated, expected):
-    if (calculated == expected):
-        error(f"{text:<35} != {calculated:08X} --> failed")
+def verified_checksum(text, calculated, expected):
+    checksum_message(text, calculated, expected)
+    if calculated != expected:
+        global failure_count
+        failure_count += 1
+        return False
+    return True
 
 def checkjunk(data, start, end, expected):
     for i in range(start, end, 4):
@@ -29,15 +43,15 @@ def check_header_line(line, name, compressed, address, address_max = None):
     address_max = address
 
   if line["address"] < 0xFFC00000:
-    error(f"{name}: Bad address")
+    fail(f"{name}: bad address")
     return False
 
   if line["checksum"] == 0 or line["checksum"] == 0xFFFFFFFF:
-    error(f"{name}: checksum is corrupt")
+    fail(f"{name}: checksum is corrupt")
     return False
 
   if line["compressed"] != compressed:
-    error(f"{name}: flags incorrect")
+    fail(f"{name}: flags incorrect")
     return False
 
   if line["address"] > address_max or line["address"] < address:
@@ -49,21 +63,27 @@ def check_header_line(line, name, compressed, address, address_max = None):
 # ensure header sizes are within limits
 def check_header_line_size(line, name, size, min, max):
   if line["size"] < min or line["size"] > max:
-    error(f"{name}: Unexpected size: {line['size']}")
+    fail(f"{name}: unexpected size: {line['size']}")
     return False
 
   if line["size"] != size:
-    warning(f"{name}: Unexpected size, old software? size={line['size']}")
+    warning(f"{name}: size {line['size']} differs from known size {size}")
     return True
 
   success(f"{name} size")
   return True
 
 def run_rom_check(rom):
+  global failure_count
+  failure_count = 0
+
   p = TekFileProcessor()
   p.read(file=rom)
 
   romdata = p.get(rom)
+  if len(romdata) != 0x400000:
+    raise ValueError(f"expected a 0x400000-byte ROM, got 0x{len(romdata):X} bytes")
+
   header = parse_boot_header(romdata)
   print(f"ROM check for {rom}")
   section_message("Header data")
@@ -93,31 +113,30 @@ def run_rom_check(rom):
     fw_header = parse_section(romdata, address)
     check_header_line(fw_header, f"Firmware at 0x{address:X}", 1, 0xFFC40000)
   else:
-    error("Firmware section not found")
+    fail("Firmware section not found")
 
   address = header["recovery"]["address"] - 0xFFC00000
   if (address > 0 and address < 0x3FFFFF):
     recovery_header = parse_section(romdata, address)
     check_header_line(recovery_header, f"Recovery at 0x{address:X}", 1, 0xFFC04000)
   else:
-    error("Recovery section not found")
+    fail("Recovery section not found")
 
   # check header after 0x60 is empty
   junk = checkjunk(romdata, 0x60, 0x100,  0xFFFFFFFF)
   if junk != 0:
-      error(f"Header: not empty at 0x{junk:x}")
+      fail(f"Header: not empty at 0x{junk:x}")
   else:
       success("Flash is empty: 0x60-0x100")
 
   # header after 0x60 is empty
   junk = checkjunk(romdata, 0x1E68, 0x4000, 0xFFFFFFFF)
   if junk != 0:
-      error(f"Bootloader: not empty at 0x{junk:x}")
+      fail(f"Bootloader: not empty at 0x{junk:x}")
   else:
       success("Flash is empty: 0x1E68-0x4000")
 
   signature_message("Bootloader is corrupt", p.value(name=rom, at="0x100"), 0x3CC0FFC0)
-  signature_message("Decompressor is corrupt", p.value(name=rom, at="0x100"), 0x3CC0FFC0)
   signature_message("Recovery section is corrupt", p.value(name=rom, at="0x4000"), 0xFFC04000)
   signature_message("Recovery compressed data corrupt", p.value(name=rom, at="0x4010") & 0xFFFF0000, 0x1F9D0000)
 
@@ -125,7 +144,7 @@ def run_rom_check(rom):
   section_message("Checksums (ROM will not boot if failed)")
 
   section = header["boot"]
-  checksum_message("Bootloader checksum",
+  verified_checksum("Bootloader checksum",
       p.checksum(name=rom, start=section["start"], end=section["end"]),
       header["boot"]["checksum"]
   )
@@ -133,25 +152,24 @@ def run_rom_check(rom):
   start = header["firmware"]["address"] - 0xFFC00000
   section = parse_section(romdata, start)
   locale_start = align(section["end"])
-  checksum_message(f"Firmware checksum at 0x{start:x}",
+  verified_checksum(f"Firmware checksum at 0x{start:x}",
       p.checksum(name=rom, start=section["start"], end=section["end"]),
       section["checksum"]
   )
 
 
-  section_message("Checksums (must be correct, but not verified)")
+  section_message("Checksums (required)")
 
   start = header["recovery"]["address"] - 0xFFC00000
   section = parse_section(romdata, start)
-  checksum_message(f"Recovery checksum at 0x{start:x}",
+  verified_checksum(f"Recovery checksum at 0x{start:x}",
       p.checksum(name=rom, start=section["start"], end=section["end"]),
-      section["checksum"],
-      fail=1
+      section["checksum"]
   )
 
 
   section = header["decompressor"]
-  checksum_message("Decompressor checksum",
+  verified_checksum("Decompressor checksum",
       p.checksum(name=rom, start=section["start"], end=section["end"]),
       header["decompressor"]["checksum"]
   )
@@ -177,9 +195,9 @@ def run_rom_check(rom):
   section_message("Checksums, other")
 
   # Raptor team PNG
-  checksum_message("Easter egg checksum", p.checksum(name=rom, start=0x26EB60, end=0x280000), 0x2A5DADCC )
+  checksum_message("Easter egg checksum", p.checksum(name=rom, start=0x26EB60, end=0x280000) )
   checksum_message("Filesystem checksum", p.checksum(name=rom, start=0x280000, end=0x3E0000) )
-  checksum_message("Device data checksum", p.checksum(name=rom, start=0x3E0000, end=0x3FFFFF) )
+  checksum_message("dispBmp checksum", p.checksum(name=rom, start=0x3E0000, end=0x3FFFFF) )
 
   # TODO: check if compressed data is actually unpackable
   # TODO: check filesystem consistency
@@ -189,13 +207,16 @@ def run_rom_check(rom):
   locale_count = 0
 
   while True:
-    size = p.value(name=rom, at=offset)
-    magic = p.value(name=rom, at=offset+4) & 0xffff0000
-    if size > 0x10000:
+    if offset + 8 > len(romdata):
         break
 
-    if (magic != 0x1F9D0000):
-        warning(f"Locale{locale_count}: data corrupt")
+    size = p.value(name=rom, at=offset)
+    magic = p.value(name=rom, at=offset+4)
+    if size < 8 or size > 0x10000:
+        break
+
+    if ((magic & 0xFFFF0000) != 0x1F9D0000):
+        fail(f"Locale{locale_count}: LZW magic is missing")
 
     if (size < 0x5000 or size > 0xA000):
         warning(f"Locale{locale_count}: unexpected size {size}")
@@ -205,16 +226,30 @@ def run_rom_check(rom):
     locale_count += 1
 
   if (locale_count != 11):
-    warning(f"Unexpected number of locales: {locale_count}")
+    fail(f"Expected 11 locales, found {locale_count}")
   else:
     success("Found all 11 locales")
 
-  print("\nRom check complete\n")
+  if failure_count:
+    fail_word = "failure" if failure_count == 1 else "failures"
+    print(f"\nROM check complete: {failure_count} {fail_word}\n")
+    return 1
+
+  print("\nROM check complete: no failures\n")
+  return 0
 
 
-if len(sys.argv) == 2:
-    input_file = sys.argv[1]
-    run_rom_check(input_file)
-else:
-  print("Usage: python verify_rom.py <file>")
-  sys.exit(1)
+def main(argv):
+  if len(argv) != 2:
+    print("Usage: python verify_rom.py <rom_file>")
+    return 1
+
+  try:
+    return run_rom_check(argv[1])
+  except (OSError, ValueError, TypeError, struct.error) as e:
+    error(f"verify_rom.py: {e}")
+    return 1
+
+
+if __name__ == "__main__":
+  raise SystemExit(main(sys.argv))

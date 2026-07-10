@@ -1,0 +1,19 @@
+// Mask-test global state, older 0x50-byte record.
+//
+// This version omits the two final words present in current 0x58-byte records.
+
+typedef struct
+{
+    double maskpreAmplitude;
+    double maskpreVScale;
+    double maskpreVOffset;
+    double maskpreVPos;
+    double maskpreHScale;
+    double maskpreHTrigPos;
+    double maskpreWidth;
+    double maskpreTrigToSamp;
+    uint32 maskprePreSampBits;
+    uint32 maskprePatternBits;
+    uint32 maskpreRecordLength;
+    uint32 maskpreSerialTrig;
+} file;

@@ -42,4 +42,4 @@ def checksum_message(text, calculated, expected = None, fail = 2):
         elif fail == 1:
           warning(f"{text:<35} = {calculated:08X} --> {RED}BAD{RESET}: expected {expected:08X}")
         else:
-          notice(f"{text:<35} = {calculated:08X} --> {RED}BAD{RESET}: expected {expected:08X}")
+          notice(f"{text:<35} = {calculated:08X}; stored {expected:08X} (ignored)")

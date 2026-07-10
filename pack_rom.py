@@ -1,13 +1,19 @@
 from teklib import (
     TekFileProcessor, known_locales, align,
     pack_section, parse_boot_header, print_boot_header,
-    calc_section_crc, parse_section, print_section,
-    boot_header_to_bytes,
-    error, warning, success, notice, checksum_message,
-    checksum
+    error, success, notice
 )
 import struct
 import sys
+import tarfile
+
+def tar_has_any(input_tar, names):
+    with tarfile.open(input_tar, 'r') as tarf:
+        members = set(tarf.getnames())
+    for name in names:
+        if name in members:
+            return True
+    return False
 
 def pack_rom(input_tar, output_rom):
     # Input files expected in tar archive
@@ -16,12 +22,10 @@ def pack_rom(input_tar, output_rom):
         "bootloader.bin",
         "decompressor.bin",
         "recovery.z",
-        "recovery.bin",
-        "firmware.bin",
         "firmware.z",
         "easteregg.png",
         "filesystem.bin",
-        "devicedata.bin"
+        "dispbmp.bin"
     ] + known_locales(".z")
 
     p = TekFileProcessor()
@@ -30,27 +34,34 @@ def pack_rom(input_tar, output_rom):
     for name in files:
         p.tar_read(path=name, file=input_tar)
 
+    for name in ["recovery.z", "firmware.z"] + known_locales(".z"):
+        if p.get(name)[:2] != b"\x1f\x9d":
+            raise ValueError(f"{name}: expected compressed ROM payload with LZW magic 1F9D")
+
+    if tar_has_any(input_tar, [
+        "views/recovery.bin", "views/firmware.bin",
+        "recovery.bin", "firmware.bin",
+    ]):
+        notice(
+            "Ignoring decompressed firmware/recovery views; "
+            "packing firmware.z/recovery.z. "
+            "No byte-identical compressor is available."
+        )
+
     # Create new ROM file
     p.allocate(size=0x400000, name="rom.bin", init=0xff)
-
-    # Read and parse original header
-    romdata = p.get("rom.bin")
-    header = parse_boot_header(romdata)
-    print_boot_header(header)
 
     # Write each section back to ROM
     p.replace(dest="rom.bin", src="easteregg.png", at=0x26EB60)
     p.replace(dest="rom.bin", src="filesystem.bin", at=0x280000)
-    p.replace(dest="rom.bin", src="devicedata.bin", at=0x3E0000)
+    p.replace(dest="rom.bin", src="dispbmp.bin", at=0x3E0000)
 
     # Write firmware sections
     base = 0xFFC00000
     decompressor_at = align(0x4000 + 0x10 + p.size(name="recovery.z"))
-    pe = struct.pack(">8I",
-        0x4,
-        0xFFFEBBDC, 0xFFFEEA4C, 0xFFFEA074,
-        0xFFFE0040, 0xFFFF4420, 0xFFFF92E4, 0xFFE6EB60
-    )
+    header_prefix = p.get("header.bin")[:0x20]
+    if len(header_prefix) != 0x20:
+        raise ValueError("header.bin: expected at least 0x20 bytes")
 
     # pad end of firmware to 4 bytes with zeroes
     offset = align(0x40010 + p.size(name="firmware.z")) - 4
@@ -76,10 +87,8 @@ def pack_rom(input_tar, output_rom):
         p.replace(dest="rom.bin", src=localename, at=offset + 4)
         offset = align(offset + size)
 
-    print_section("Recovery", recovery)
-
     # top headers
-    p.replace(dest="rom.bin", data=pe, at=0x0)
+    p.replace(dest="rom.bin", data=header_prefix, at=0x0)
     p.replace(dest="rom.bin", data=pack_section(boot), at=0x20)
     p.replace(dest="rom.bin", data=pack_section(decompressor), at=0x40)
     p.replace(dest="rom.bin", data=pack_section(firmware), at=0x30)
@@ -88,14 +97,19 @@ def pack_rom(input_tar, output_rom):
     p.replace(dest="rom.bin", data=pack_section(recovery), at=0x4000)
     p.replace(dest="rom.bin", data=pack_section(firmware), at=0x40000)
 
-    p.write(name=output_rom)
+    print_boot_header(parse_boot_header(p.get("rom.bin")))
+    p.write(name=output_rom, src="rom.bin")
     success(f"ROM packed successfully -> {output_rom}")
 
 
 if len(sys.argv) == 3:
     input_tar = sys.argv[1]
     output_rom = sys.argv[2]
-    pack_rom(input_tar, output_rom)
+    try:
+        pack_rom(input_tar, output_rom)
+    except (OSError, ValueError, KeyError, struct.error, tarfile.TarError) as e:
+        error(f"pack_rom.py: {e}")
+        sys.exit(1)
 else:
     print("Usage: python pack_rom.py <input.tar> <output_rom.bin>")
     sys.exit(1)

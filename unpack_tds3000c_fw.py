@@ -1,8 +1,9 @@
 from teklib.process import TekFileProcessor, known_locales
-from teklib.console import checksum_message, warning
+from teklib.console import checksum_message, error, warning
 from teklib.strings import decode_table
 import struct
 import sys
+import zipfile
 
 
 def block_size(data, offset):
@@ -59,8 +60,7 @@ def unpack_fw(input_file, output_tar):
         offset = block_end(data, offset)
 
     if len(headers) != 3:
-        warning(f"Expected 3 Tektronix headers, found {len(headers)}")
-        sys.exit(1)
+        raise ValueError(f"expected 3 Tektronix headers, found {len(headers)}")
 
     for i, offset in enumerate(headers):
         p.append(dest=f"header_{i}.bin", src="tds3000c.img", start=offset, end=offset + 0x60)
@@ -133,10 +133,18 @@ def unpack_fw(input_file, output_tar):
     print(f"--> {output_tar}")
 
 
-if len(sys.argv) == 3:
-    input_file = sys.argv[1]
-    output_tar = sys.argv[2]
-    unpack_fw(input_file, output_tar)
-else:
-    print("Usage: python unpack_tds3000c_fw.py <input_zip> <output.tar>")
-    sys.exit(1)
+def main(argv):
+    if len(argv) != 3:
+        print("Usage: python unpack_tds3000c_fw.py <input_zip> <output.tar>")
+        return 1
+
+    try:
+        unpack_fw(argv[1], argv[2])
+        return 0
+    except (OSError, ValueError, KeyError, TypeError, struct.error, zipfile.BadZipFile) as e:
+        error(f"unpack_tds3000c_fw.py: {e}")
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))

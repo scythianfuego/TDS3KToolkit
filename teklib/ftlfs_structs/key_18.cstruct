@@ -23,7 +23,7 @@ typedef struct
     // six decimation values - 1, 2, 4, 5, 10, 20
     // 197th-order FIR filter, ten taps, 11th negative = zero DC gain
     // Actual shape from dump:
-    // Doesn’t change DC / offset calibration
+    // Does not change DC / offset calibration
     // Rolloff compensation: adds more correction at higher frequencies
     // Also compensates frontend unevenness and ADC path mismatch
     int16 compensationFilterCoeff[6][198][10];

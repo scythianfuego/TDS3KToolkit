@@ -1,7 +1,8 @@
 from teklib.process import TekFileProcessor, known_locales
-from teklib.console import checksum_message
+from teklib.console import checksum_message, error, warning
 from teklib.strings import decode_table
 import sys
+import zipfile
 
 
 def test_checksums(p):
@@ -14,7 +15,7 @@ def test_checksums(p):
     #data
     checksum_message("Service firmware checksum ", p.checksum(name="lzw/service.z"), p.value(name="disk1/fwdisk1.dat", at="0x0C") )
     checksum_message("Recovery firmware checksum", p.checksum(name="lzw/recovery.z"), p.value(name="disk2/fwdisk2a.dat", at="0x0C") )
-    print("-- Next checksum calculation should includes some extra files (which?), ignore mismatch --")
+    print("-- The next checksum includes unknown extra files; ignore the mismatch --")
     checksum_message("User firmware checksum", p.checksum(name="lzw/firmware.z"), p.value(name="disk3/fwdisk3.dat", at="0x0C"), 1 )
 
 
@@ -29,12 +30,6 @@ def unpack_fw(input_file, output_tar):
         "lzw/service.z", "lzw/recovery.z", "lzw/firmware.z"]
 
     outputnames = ["lzw/service.z", "lzw/recovery.z", "tmp/disk34.data", "service.dat", "recovery.dat"]
-
-    for locale in known_locales():
-        files_to_save.append(f"{locale}.dat")
-        files_to_save.append(f"lzw/{locale}.z")
-        files_to_save.append(f"locale/{locale}.txt")
-        outputnames.append(f"locale/{locale}.txt")
 
     p = TekFileProcessor()
 
@@ -55,18 +50,32 @@ def unpack_fw(input_file, output_tar):
 
     p.unlzw( src="lzw/service.z", dest="service.dat")
     p.unlzw( src="lzw/recovery.z", dest="recovery.dat")
-    p.split_lzw( src="tmp/disk34.data", names=disk34_filenames)
+    split_names = p.split_lzw(src="tmp/disk34.data", names=disk34_filenames)
+    for name in split_names:
+        data_name = f"{name}.dat"
+        compressed_name = f"lzw/{name}.z"
+        if p.has(data_name) and data_name not in files_to_save:
+            files_to_save.append(data_name)
+        if compressed_name not in files_to_save:
+            files_to_save.append(compressed_name)
 
     test_checksums(p)
 
     for locale in known_locales():
-        results = decode_table(p.get(f"{locale}.dat"))
-        s = []
-        for i, (offset, string) in enumerate(results):
-            s.append(f"{i:4d}\t0x{offset:04x}\t{string}\n")
-        s = ''.join(s)
+        if not p.has(f"{locale}.dat"):
+            continue
+        try:
+            results = decode_table(p.get(f"{locale}.dat"))
+            s = []
+            for i, (offset, string) in enumerate(results):
+                s.append(f"{i:4d}\t0x{offset:04x}\t{string}\n")
+            s = ''.join(s)
 
-        p.append(data=s.encode('utf-8'), dest=f"locale/{locale}.txt")
+            p.allocate(size=0, name=f"locale/{locale}.txt")
+            p.append(data=s.encode('utf-8'), dest=f"locale/{locale}.txt")
+            files_to_save.append(f"locale/{locale}.txt")
+        except Exception as e:
+            warning(f"{locale}: could not decode string table view: {e}")
 
     print("\nSaving files...")
     for name in files_to_save:
@@ -77,10 +86,18 @@ def unpack_fw(input_file, output_tar):
     print(f"--> {output_tar}")
 
 
-if len(sys.argv) == 3:
-    input_file = sys.argv[1]
-    output_tar = sys.argv[2]
-    unpack_fw(input_file, output_tar)
-else:
-    print("Usage: python unpack_fw.py <input_zip> <output.tar>")
-    sys.exit(1)
+def main(argv):
+    if len(argv) != 3:
+        print("Usage: python unpack_fw.py <input_zip> <output.tar>")
+        return 1
+
+    try:
+        unpack_fw(argv[1], argv[2])
+        return 0
+    except (OSError, ValueError, KeyError, TypeError, zipfile.BadZipFile) as e:
+        error(f"unpack_fw.py: {e}")
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))
