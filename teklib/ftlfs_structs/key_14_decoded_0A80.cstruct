@@ -1,4 +1,4 @@
-// Decoded key 0x14 power-up settings image, firmware 3.41/Sicco/current.
+// Decoded key 0x14 power-up settings image, firmware 3.41.
 // This is the post-sub_1C83B8 0xA80-byte image, not the compressed on-flash payload.
 // Layout is descriptor id 1 record (0xA34) followed by descriptor id 2 record (0x4C).
 // Generated from tmp/setup_serializer_parms.tsv by tools/render_setup_cstruct.py.

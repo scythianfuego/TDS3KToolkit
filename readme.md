@@ -121,8 +121,4 @@ In order to create less clutter, example scripts are using tar archive as an out
 ## Debug hardware and software
 
 TODO: add simple BDM kicad board.
-Please refer to Sicco BDM board for now (link eevblog).
-
-## API
-
-TBD.
+Please refer to Sicco BDM board for now (see eevblog).

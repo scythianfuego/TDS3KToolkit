@@ -1,4 +1,4 @@
-// Persistent error log, key 0x13, firmware 3.41/Sicco/current observed length 0x15F4.
+// Persistent error log, key 0x13, firmware 3.41 observed length 0x15F4.
 // The live RAM image is at 0x003EA018. Firmware treats entries as a 200-slot ring.
 
 typedef struct

@@ -1,4 +1,4 @@
-// Saved setup slot 4, firmware 3.41/Sicco/current observed length.
+// Saved setup slot 4, firmware 3.41 observed length.
 // Generated from tmp/setup_serializer_parms.tsv by tools/render_setup_cstruct.py.
 // Descriptor id 1 payload: 0xA30 bytes from command/PARM setup RAM 0x003C8DA8.
 
