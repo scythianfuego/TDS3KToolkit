@@ -13,16 +13,16 @@ typedef struct
     // scampGainIndex selections here during FISO setup; those are selector indices,
     // not literal analog gain readings.
     uint32 adcFisoGainIndex[3];
-    // Per-channel accessor reads this. TBC phase setup and calSkew clear it for
-    // channel 0; calSkew adjusts it for later channels during crossing alignment.
-    int32 word1c;
-    uint32 reserved20[4]; // Zero in defaults and not printed by the factory-acq dump.
-    // Factory acquisition timing/filter table at slot+0x30..+0x5CFF.
-    // Producer makeIntegerFilter stores ten signed taps per row; loader synthesizes
-    // an 11th tap as negative sum before writing acquisition SRAM filters.
-    // six decimation values - 1, 2, 4, 5, 10, 20
-    // 197th-order FIR filter, ten taps, 11th negative = zero DC gain
-    // Actual shape from dump:
+    // calSkew uses channel 0 as the reference and forces this field to zero.
+    // For channels 1..3 both edge passes subtract fixdfsi(term*10/200).
+    // Runtime copies it verbatim to selector-0 Relative18 0x41BC+2*channel.
+    int32 acSramDeskew;
+    uint32 unknown20To2f[4]; // Zero in defaults.
+    // 197th-order FIR filter
+    // Six decimation families: 1, 2, 4, 5, 10, 20. There are 198 hardware
+    // rows/phases and ten stored taps per row. The loader synthesizes tap 11 as
+    // -sum(stored taps), so the applied correction has exactly zero DC gain.
+    // Actual shape:
     // Does not change DC / offset calibration
     // Rolloff compensation: adds more correction at higher frequencies
     // Also compensates frontend unevenness and ADC path mismatch
@@ -32,14 +32,15 @@ typedef struct
 typedef struct
 {
     int32 tbicHwGain; // Dump mode 3, tail+0x00.
-    // Accessed through a firmware state map; indexes 0..5 observed, index 6 still open.
-    int32 tailTable[7];
-    int32 reserved20[9];       // Zero in defaults and not printed by the factory-acq dump.
+    // Fixed defaults 350,300,500,500,500,500,600. Runtime selects one through
+    // a state map and adds it to 0x1EEB plus the reference channel's skewPs20.
+    int32 modeTimingBias[7];
+    int32 unknown20To43[9];
     int32 tbcClockPhaseIndex;  // Dump mode 8, tail+0x44.
     float triggerDiv2ClockDac; // Dump mode 9, tail+0x48.
-    uint32 reserved4c[2];      // Zero in defaults and not printed by the factory-acq dump.
-    int16 invalid;             // Loader checks signed value at tail+0x54; save clears it before nvMemPut.
-    uint16 reserved56;         // Trailer padding; not touched by the load/save validity check or dump.
+    uint32 unknown4cTo53[2];
+    int16 invalid;             // Loader checks signed value at tail+0x54; save clears it.
+    uint16 unknown56;
 } factory_acq_tail;
 
 typedef struct

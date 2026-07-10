@@ -1,17 +1,24 @@
-// SPC acquisition packed stream: channel 4, chunk 1.
-// Firmware expands this to channel offset +0x0AD40 in the 0x19860-byte block.
-// GOS/GOSPD large SP/SPD gain-offset workspace family; exact chunk 0/1 split is still inferred.
-// Each 3-byte element stores two signed 12-bit lanes; see key_24.cstruct.
+// SPC acquisition packed stream: physical channel 4, chunk 1.
+// Expanded channel shape is two [56][198] main tables, [13][198] sample
+// references, and [7][198] peak-detect references (stride 0x19860 bytes).
+// "Conveyor position" is a working name for the proven 56-element axis.
+// Main gain/offset table used only when the mapped sample-reference page is zero.
+// Factory producer calibrates acquisition mode 0 against reference page 0.
+// GOS/GOSPD large SP/SPD gain-offset
+// Each element is a signed 12-bit gain correction followed by a signed
+// 12-bit offset correction, packed into three bytes. Expansion sign-extends
+// each lane and shifts it left four bits. Runtime vectors subtract the selected
+// reference page from the selected main table; peak mode adds parity terms.
 
 typedef struct
 {
-    uint8 low12_bits_7_0;
-    uint8 high12_bits_3_0:4;
-    uint8 low12_bits_11_8:4;
-    uint8 high12_bits_11_4;
-} spc_acq_packed_pair;
+    uint8 gain_bits_7_0;
+    uint8 offset_bits_3_0:4;
+    uint8 gain_bits_11_8:4;
+    uint8 offset_bits_11_4;
+} spc_acq_packed_gain_offset;
 
 typedef struct
 {
-    spc_acq_packed_pair pair[0x2B50];
+    spc_acq_packed_gain_offset mainCorrectionPageZero[56][198];
 } file;

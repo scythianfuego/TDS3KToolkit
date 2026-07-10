@@ -1,6 +1,10 @@
 typedef struct
 {
-    // Dump labels these as bit 5..9 weights; array index is bit_number - 5.
+    // These are bit 5..9 weights; index = bit_number - 5.
+    // Producer recurrence, after histogram transition-error reduction:
+    //   weight[0] = 0x80 - round(error[0])
+    //   weight[n] = 0x80 + sum(weight[0..n-1]) - round(error[n])
+    // Zero error therefore gives 0x80, 0x100, 0x200, 0x400, 0x800.
     uint32 bitWeight5To9[5];
 } adc_bit_weights;
 
@@ -14,6 +18,9 @@ typedef struct
     // Four physical channel slots; 2-channel scopes keep the upper slots defaulted.
     // Dump prints one value per channel for each ADC/bit-weight row; channel stride is 0x3C.
     adc_bit_weights_channel channel[4];
-    uint8 invalid;     // Loader checks this byte; save clears it before nvMemPut.
+    // The producer derives each error from a 512-bin histogram: average four
+    // reference bins, score deficient bins transition-1 through transition-15,
+    // then divide the accumulated deficit by four.
+    uint8 invalid;     // Nonzero makes the runtime use generated radix defaults.
     uint8 reserved[3]; // Padding after invalid.
 } file;

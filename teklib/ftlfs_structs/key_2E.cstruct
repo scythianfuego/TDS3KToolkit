@@ -1,17 +1,24 @@
-// SPC acquisition packed stream: channel 3, chunk 2.
-// Firmware expands this to channel offset +0x15A80 in the 0x19860-byte block.
-// calGOFisoS / FISO sample-mode gain-offset body.
-// Each 3-byte element stores two signed 12-bit lanes; see key_24.cstruct.
+// SPC acquisition packed stream: physical channel 3, chunk 2.
+// Expanded channel shape is two [56][198] main tables, [13][198] sample
+// references, and [7][198] peak-detect references (stride 0x19860 bytes).
+// "Conveyor position" is a working name for the proven 56-element axis.
+// Sample-mode reference pages. Mode mapping: <=3:m, <=8:m-1,
+// <=13:m-2, otherwise m-3.
+// calGOFisoS / FISO sample-mode gain-offset body
+// Each element is a signed 12-bit gain correction followed by a signed
+// 12-bit offset correction, packed into three bytes. Expansion sign-extends
+// each lane and shifts it left four bits. Runtime vectors subtract the selected
+// reference page from the selected main table; peak mode adds parity terms.
 
 typedef struct
 {
-    uint8 low12_bits_7_0;
-    uint8 high12_bits_3_0:4;
-    uint8 low12_bits_11_8:4;
-    uint8 high12_bits_11_4;
-} spc_acq_packed_pair;
+    uint8 gain_bits_7_0;
+    uint8 offset_bits_3_0:4;
+    uint8 gain_bits_11_8:4;
+    uint8 offset_bits_11_4;
+} spc_acq_packed_gain_offset;
 
 typedef struct
 {
-    spc_acq_packed_pair pair[0x0A0E];
+    spc_acq_packed_gain_offset sampleReference[13][198];
 } file;
