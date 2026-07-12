@@ -1,0 +1,64 @@
+// Factory acquisition calibration (NV key 24, 95320 bytes).
+//
+// Important dimensions:
+//   channel[4]                    = front-panel CH1..CH4
+//   timingCorrectionTap[6]       = selectable rate/timing banks
+//   timingCorrectionTap[*][198]  = recurring acquisition cell phase
+//   timingCorrectionTap[*][*][10]= stored terms for one small correction kernel
+//
+// Each bank contains 198 phase-specific ten-term kernels. Runtime adds an
+// eleventh term to each kernel.
+
+typedef struct
+{
+    // Dump mode 0: six 4-bit speed-bias values; accessor defaults to 0x494949.
+    uint32 packedSpeedBias;
+    // Dump mode 1: three 4-bit TCC values; accessor defaults to 0x040404.
+    uint32 packedTcc;
+    // Dump mode 2: three 4-bit ps200 values; accessor defaults to 0x060606.
+    uint32 packedPs200;
+    // Dump mode 4 prints this value * 20 ps; calSkew subtracts the averaged
+    // measured crossing skew from it.
+    int32 skewPs20;
+    // Three FISO ADC-section selector indices inside this physical channel.
+    uint32 adcFisoGainIndex[3];
+    // calSkew uses channel 0 as the reference and forces this field to zero.
+    // For channels 1..3 both edge passes subtract fixdfsi(term*10/200).
+    // Runtime copies it verbatim to selector-0 Relative18 0x41BC+2*channel.
+    int32 channelDeskewAdjustment;
+    // Default builder clears +0x20..+0x2F and every known 3.41 consumer skips
+    // directly from +0x1C to the correction body at +0x30.
+    uint32 reservedHeader20[4];
+
+    // [bank][cellPhase][storedTap]
+    //
+    // Nominal factory bank labels: divide by 1, 2, 4, 5, 10, 20.
+    // Runtime sample-rate rows 0..6 select banks 0,1,2,3,3,4,5. Low-level
+    // acquisition mode code 1 enables the table for those rows.
+    //
+    // For each cell phase, runtime writes the ten stored terms and derives:
+    //     tap[10] = -sum(tap[0..9])
+    // Each small kernel therefore sums to zero, adding timing/rolloff correction
+    // while preserving a constant input level.
+    int16 timingCorrectionTap[6][198][10];
+} factory_acq_slot;
+
+typedef struct
+{
+    int32 tbicHwGain; // Dump mode 3, tail+0x00.
+    // Fixed defaults 350,300,500,500,500,500,600. Runtime selects one through
+    // a state map and adds it to 0x1EEB plus the reference channel's skewPs20.
+    int32 modeTimingBias[7];
+    int32 unknown20To43[9];
+    int32 tbcClockPhaseIndex;  // Dump mode 8, tail+0x44.
+    float triggerDiv2ClockDac; // Dump mode 9, tail+0x48.
+    uint32 unknown4cTo53[2];
+    int16 invalid;             // Loader checks signed value at tail+0x54; save clears it.
+    uint16 unknown56;
+} factory_acq_tail;
+
+typedef struct
+{
+    factory_acq_slot channel[4]; // Four physical channel slots, each 23808 bytes.
+    factory_acq_tail tail;       // Shared 88-byte tail at file offset 0x17400.
+} file;

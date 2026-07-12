@@ -1,8 +1,0 @@
-// Saved setup slot 6, firmware 3.15 observed length.
-// Older command/PARM setup serializer image; shorter than current 0xA30 map.
-
-typedef struct
-{
-    uint32 statusMarker; // observed v3.15 marker: 0x000000EE
-    uint8 legacyCommandParmSetupImage[0x9E0];
-} file;

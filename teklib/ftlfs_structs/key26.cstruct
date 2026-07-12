@@ -1,0 +1,29 @@
+typedef struct
+{
+    float extExt10Offset[2];         // External trigger EXT/EXT10 offset terms.
+    float extExt10LinDivsPerVolt[2]; // External trigger EXT/EXT10 linear divs-per-volt terms.
+    float line50PctVal;              // Line trigger 50 percent value.
+    // Entries 0..2 come from one baseline event-count search. Entry 3 comes
+    // from a separate coupling-3 noise-rejection search.
+    float hystDacVal[4];
+    float ext1HystDacVal[4];         // EXT trigger hysteresis DAC values.
+    float ext10HystDacVal[4];        // EXT10 trigger hysteresis DAC values.
+    // Per-side producer equation after the shared trim is fixed:
+    //   4*(firstEdge + secondEdge) - triggerBaseline
+    float hfRejectOffset;
+    float lfRejectOffset;
+    float extExt10NegSlopeOffset[2]; // EXT/EXT10 negative-slope offsets.
+    float dummy[2];                  // Firmware labels these as dummy 0..1.
+} trigger_factory_side;
+
+typedef struct
+{
+    trigger_factory_side trigger[2]; // Trigger sides A and B, each 92 bytes.
+    // Coupled response searches use the grid 0,0x80,...,0x380 and target 60%
+    // of the baseline span. Search seeds are 0x000 and 0x380 respectively;
+    // the generated default NVRAM record stores 0x180 in both fields.
+    uint32 filter30KhzTrim;
+    uint32 filter80KhzTrim;
+    uint16 version;                  // Save path writes version 5.
+    uint16 reservedc2;               // Trailer padding.
+} file;

@@ -17,9 +17,9 @@ def json_text(value):
 def schema_file(key, size=None):
     names = []
     if size is not None:
-        names.append(f"key_{key:02X}_0{size:03X}.cstruct")
+        names.append(f"key{key:02d}_0{size:03X}.cstruct")
 
-    names.append(f"key_{key:02X}.cstruct")
+    names.append(f"key{key:02d}.cstruct")
     for name in names:
         path = join(STRUCTS, name)
         try:

@@ -1,0 +1,46 @@
+// Shared Short Pipe SPC gain/offset calibration (NV key 35).
+// The 198 axis is the recurring acquisition cell phase.
+
+typedef struct
+{
+    int16 gainCorrection;
+    int16 offsetCorrection;
+} spc_gain_offset_pair;
+
+typedef struct
+{
+    spc_gain_offset_pair physicalChannel[4]; // CH1..CH4 at one cell phase.
+} spc_acq_row;
+
+typedef struct
+{
+    // Firmware selects the correction by cell-phase parity.
+    int16 evenCellPhaseCorrection;
+    int16 oddCellPhaseCorrection;
+} spc_parity_correction;
+
+typedef struct
+{
+    spc_parity_correction selector[2]; // Two selector entries per channel.
+} spc_acq_channel_correction;
+
+typedef struct
+{
+    spc_acq_channel_correction channel[4]; // Four channel correction entries.
+} spc_acq_correction_table;
+
+typedef struct
+{
+    spc_acq_row gosRows[198];   // Sample/Short Pipe, offset 0x0000.
+    spc_acq_row gospdRows[198]; // Peak/Short Pipe, offset 0x0C60.
+    // Short Pipe peak path adds both even/odd terms from the selected entry.
+    spc_acq_correction_table gospdCorrection18c0;
+    spc_acq_correction_table gospdCorrection18e0;
+    // FISO peak path selects even or odd term by cell-phase parity. The 0x1900
+    // table adjusts gain; 0x1920 adjusts offset.
+    spc_acq_correction_table fisoPdCorrection1900;
+    spc_acq_correction_table fisoPdCorrection1920;
+    uint16 reserved1940[112];                // File offset 0x1940..0x1A1F.
+    int16 invalid;                           // Loader/save status word at file offset 0x1A20.
+    uint16 reserved1a22;                     // Trailer padding.
+} file;

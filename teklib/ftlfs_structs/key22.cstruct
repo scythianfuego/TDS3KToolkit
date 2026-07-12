@@ -1,0 +1,42 @@
+// This is persistent remote waveform-transfer / WFMOut preamble state:
+// settings that control how waveform data is reported over SCPI
+
+// The actual waveform samples come from the waveform manager /
+// acquisition/reference waveform objects when CURVE? or related commands run;
+// Key 22 remembers the transfer formatting/preamble choices across boots.
+
+typedef struct
+{
+    // Two firmware words storing one PowerPC double; combine hi/lo as a
+    // big-endian f64.
+    uint32 hi;
+    uint32 lo;
+} ppc_double_words;
+
+typedef struct
+{
+    // Remote waveform-transfer / WFMOut preamble state.
+    // Firmware RAM image is 0x0041C000, selected by pointer 0x0041BC64.
+    // The loader reads key 22 directly into this object and saves it unchanged.
+    uint32 wfmpreBitNr;                   // +0x00 WFMPre:BIT_Nr, default 8; set accepts 8 or 16.
+    uint32 wfmpreBnFmtSelector;           // +0x04 WFMPre:BN_Fmt / ENCDG signedness selector.
+    uint32 wfmpreBytNr;                   // +0x08 WFMPre:BYT_Nr, default 1; set accepts 1 or 2.
+    uint32 wfmpreBytOrSelector;           // +0x0C WFMPre:BYT_Or byte-order selector.
+    uint32 wfmpreEncBinarySelector;       // +0x10 WFMPre:ENCdg binary/ASCII selector component.
+    uint32 curveStatusOrSequence;         // +0x14 default 0; observed around CURVE/WFID paths.
+    uint32 wfmprePtFmt;                   // +0x18 WFMPre:PT_Fmt selector; DoPTFMTC stores here.
+    uint32 reservedOrZero;                // +0x1C no direct nonzero initializer observed.
+    ppc_double_words wfmpreXIncr;         // +0x20 WFMPre:XINcr.
+    ppc_double_words wfmpreXZero;         // +0x28 WFMPre:XZEro.
+    ppc_double_words wfmpreYMult;         // +0x30 WFMPre:YMUlt.
+    ppc_double_words wfmpreYZero;         // +0x38 WFMPre:YZEro.
+    ppc_double_words wfmpreYOff;          // +0x40 WFMPre:YOFf.
+    uint32 wfmpreYUnitSelector;           // +0x48 WFMPre:YUNit, default 1.
+    uint32 wfmpreXUnitSelector;           // +0x4C WFMPre:XUNit, default 3.
+    uint32 dataEncDg;                     // +0x50 DATa:ENCdg / WFMPre:ENCdg enum derived from +0x04/+0x0C/+0x10.
+    uint32 dataStart;                     // +0x54 DATa:STARt, default 1; clamped to 1..10000.
+    uint32 dataStop;                      // +0x58 DATa:STOP, default 10000; clamped to 1..10000.
+    uint32 dataWidth;                     // +0x5C DATa:WIDth; accepts 1/2 and updates +0x00/+0x08.
+    uint32 dataQuerySourceSelector;       // +0x60 DATa:SOUrce query fallback when source argument is -1.
+    uint32 dataCommandSourceSelector;     // +0x64 DATa:SOUrce command/default source selector.
+} file;

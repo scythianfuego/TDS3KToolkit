@@ -1,0 +1,11 @@
+// VHTTP connect/report URLs plus Ethernet HTTP port, key 79.
+// ETHERnet:HTTPPORT is network parameter index 11 and is saved here rather
+// than in the key 67 eleven-entry table.
+
+typedef struct
+{
+    char connectUrl0[201];
+    char connectUrl1[201];
+    char connectUrl2[201];
+    char ethernetHttpPort[15]; // ETHERnet:HTTPPORT, default "80".
+} file;

@@ -1,0 +1,16 @@
+// Ethernet network-printer / VHTTP file-entry table, key 68.
+// Each 195-byte entry is three 65-byte string fields.
+// Manual ETHERnet:NETPRInter:ADD/DELEte/REName/SELect:ALLInfo uses this
+// exact triple order: printer name; printer server name; print server IP address.
+
+typedef struct
+{
+    char printerName[65];
+    char printServerName[65];
+    char printServerIpAddress[65];
+} network_printer_entry;
+
+typedef struct
+{
+    network_printer_entry entry[21];
+} file;

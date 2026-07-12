@@ -1,0 +1,26 @@
+// Packed SPC gain/offset correction: physical CH2, chunk 0 of 4.
+// Each packed element contains gain and offset corrections for one acquisition
+// cell phase.
+// Expanded channel shape is two [56][198] main tables, [13][198] sample
+// references, and [7][198] peak-detect references (stride 104544 bytes).
+// Main gain/offset table used when the mapped sample-reference page is nonzero.
+// Factory producer calibrates acquisition mode 15 against reference page 12.
+// GOS/GOSPD large SP/SPD gain-offset
+// Each element is a signed 12-bit gain correction followed by a signed
+// 12-bit offset correction, packed into three bytes. Expansion sign-extends
+// each numerical component and shifts it left four bits. Runtime vectors
+// subtract the selected reference page from the selected main table; peak mode
+// adds parity-dependent terms.
+
+typedef struct
+{
+    uint8 gain_bits_7_0;
+    uint8 offset_bits_3_0:4;
+    uint8 gain_bits_11_8:4;
+    uint8 offset_bits_11_4;
+} packed_spc_gain_offset_correction;
+
+typedef struct
+{
+    packed_spc_gain_offset_correction mainByPositionWhenReferencePageNonzero[56][198];
+} file;

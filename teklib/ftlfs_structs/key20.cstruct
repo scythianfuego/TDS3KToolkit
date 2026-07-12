@@ -1,0 +1,10 @@
+// Power-up settings snapshot, firmware 3.41.
+// On flash this record is length-prefixed compressed data.
+// Decode it first, then parse the 2688-byte image with key20_decoded_0A80.cstruct.
+
+typedef struct
+{
+    // Big-endian decoded length word. Current descriptor set expects 2688.
+    uint32 decodedLength;
+    uint8 compressedData[];
+} file;

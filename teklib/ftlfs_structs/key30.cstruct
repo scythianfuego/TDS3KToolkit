@@ -1,0 +1,12 @@
+typedef struct
+{
+    uint32 status;    // Caller-written calibration status/result word.
+    uint8 rtcTime[3]; // RTC time bytes from fillRtcStatusTimestamp_maybe.
+    uint8 rtcDate[2]; // RTC date bytes from fillRtcStatusTimestamp_maybe.
+    uint8 byte5;      // Preserved raw across timestamp updates.
+    uint16 rtcYear;   // Full year, e.g. 0x07E5 == 2021.
+    uint8 rtcWeekday; // RTC weekday byte.
+    uint8 zero9;      // Timestamp helper writes zero.
+    uint8 marker;     // Timestamp helper writes 0xFF.
+    uint8 byte11;     // Preserved raw across timestamp updates.
+} file;

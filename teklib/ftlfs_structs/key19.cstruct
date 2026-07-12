@@ -1,0 +1,27 @@
+// Persistent error log, key 19, firmware 3.41 observed length 5620.
+// The live RAM image is at 0x003EA018. Firmware treats entries as a 200-slot ring.
+
+typedef struct
+{
+    uint16 eventId;              // +0x00: displayed by firmware as "Id".
+    uint16 instance;             // +0x02: displayed by firmware as "Instance".
+    uint32 taskId;               // +0x04: task identifier captured when the entry was logged.
+    uint32 packedTime;           // +0x08: RTC-style BCD time; formatted as "%02d:%02d:%02d".
+    uint32 packedDate;           // +0x0C: RTC-style BCD date; formatted as "%02d/%02d/%4d".
+    uint32 startupCounter;       // +0x10: startup/session counter snapshot.
+    uint32 classId;              // +0x14: indexes the error-log class-name table; out-of-range stores 0.
+    uint32 levelOrContext;       // +0x18: formatter labels the live value as "Level".
+} error_log_entry;
+
+typedef struct
+{
+    uint16 wrapCounter;          // +0x00: incremented when the 200-entry ring is already full.
+    uint16 nextWriteIndex;       // +0x02: next ring slot, modulo 200.
+    uint16 storedCount;          // +0x04: active entry count, capped at 200.
+
+    // +0x06..+0x12: seven class/id bucket counters selected by firmware jump tables.
+    // UI queries expose each counter individually and their combined sum.
+    uint16 bucketCount[7];
+
+    error_log_entry entries[200]; // +0x14: 200 * 28 = 5600 bytes.
+} file;

@@ -1,0 +1,12 @@
+typedef struct
+{
+    uint32 language;              // LANGuage / PARM_Language.
+    uint32 calFactoryNotifyHours; // CALibrate:FACtory:NOTIfy:HOURs / PARM_CalFactory_notifyHours.
+    double calFactoryNotifyYears; // CALibrate:FACtory:NOTIfy:YEARs / PARM_CalFactory_notifyYears.
+    uint32 rs232Baud;             // RS232:BAUd / PARM_Rs232_baud.
+    uint32 rs232Flagging;         // RS232:HARDFlagging / PARM_Rs232_flagging.
+    uint32 rs232Eol;              // RS232:EOL / PARM_Rs232_eol.
+    uint32 gpibConfig;            // GPIB:CONFIGuration / PARM_Gpib_config.
+    uint32 gpibAddress;           // GPIB:ADDress / PARM_Gpib_address.
+    uint32 reserved24;            // Persisted as part of the 40-byte record.
+} file;
